@@ -1,7 +1,27 @@
+import { useState } from "react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
+import { useToast } from "@/hooks/use-toast";
 
 const TradeCard = () => {
+  const [isExecuting, setIsExecuting] = useState(false);
+  const { toast } = useToast();
+
+  const handleExecuteTrade = () => {
+    setIsExecuting(true);
+    toast({
+      title: "جاري تنفيذ الصفقة...",
+      description: "يتم إرسال الأوامر للمنصة",
+    });
+
+    setTimeout(() => {
+      setIsExecuting(false);
+      toast({
+        title: "تم فتح الصفقة!",
+        description: "صفقة Long على AVAXUSDT بنجاح",
+      });
+    }, 1500);
+  };
   return (
     <Card className="p-3 flex flex-col gap-3 shadow-soft">
       <div className="flex items-center justify-between">
@@ -68,10 +88,18 @@ const TradeCard = () => {
       </div>
 
       <div className="flex items-center justify-between gap-2 mt-1 text-xs">
-        <Button className="flex-1 bg-success hover:bg-success/90 text-success-foreground">
-          تنفيذ صفقة Long مقترحة
+        <Button 
+          onClick={handleExecuteTrade}
+          disabled={isExecuting}
+          className={`flex-1 bg-success hover:bg-success/90 text-success-foreground transition-all duration-200 ${
+            isExecuting ? "animate-pulse" : "hover:scale-105"
+          }`}
+        >
+          {isExecuting ? "⏳ جاري التنفيذ..." : "تنفيذ صفقة Long مقترحة"}
         </Button>
-        <Button variant="outline">تعديل يدوي</Button>
+        <Button variant="outline" className="transition-all duration-200 hover:scale-105">
+          تعديل يدوي
+        </Button>
       </div>
     </Card>
   );

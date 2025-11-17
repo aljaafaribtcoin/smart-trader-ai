@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 
 const TradesTable = () => {
+  const [activeTab, setActiveTab] = useState<"open" | "closed">("open");
   const trades = [
     {
       symbol: "AVAXUSDT",
@@ -32,10 +34,24 @@ const TradesTable = () => {
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-semibold">سجل الصفقات (AI + يدوي)</h3>
         <div className="flex items-center gap-2 text-[11px]">
-          <Button variant="secondary" size="sm" className="h-auto px-2 py-1">
+          <Button
+            variant={activeTab === "open" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setActiveTab("open")}
+            className={`h-auto px-2 py-1 transition-all duration-200 ${
+              activeTab === "open" ? "scale-105" : "hover:scale-105"
+            }`}
+          >
             الصفقات المفتوحة
           </Button>
-          <Button variant="ghost" size="sm" className="h-auto px-2 py-1">
+          <Button
+            variant={activeTab === "closed" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setActiveTab("closed")}
+            className={`h-auto px-2 py-1 transition-all duration-200 ${
+              activeTab === "closed" ? "scale-105" : "hover:scale-105"
+            }`}
+          >
             الصفقات المغلقة
           </Button>
         </div>
@@ -57,8 +73,10 @@ const TradesTable = () => {
             {trades.map((trade, index) => (
               <tr
                 key={index}
-                className={`transition ${
-                  index === 0 ? "bg-muted/50 hover:bg-muted/70" : "bg-muted/30 hover:bg-muted/50"
+                className={`transition-all duration-200 animate-fade-in ${
+                  index === 0
+                    ? "bg-muted/50 hover:bg-muted/70 hover:scale-[1.01]"
+                    : "bg-muted/30 hover:bg-muted/50 hover:scale-[1.01]"
                 }`}
               >
                 <td className="py-1.5 pr-2 font-semibold">{trade.symbol}</td>

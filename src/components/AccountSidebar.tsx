@@ -1,11 +1,24 @@
+import { useState } from "react";
 import { Card } from "./ui/card";
+import { useToast } from "@/hooks/use-toast";
 
 const AccountSidebar = () => {
+  const [selectedSymbol, setSelectedSymbol] = useState("BTCUSDT");
+  const { toast } = useToast();
+
   const watchlist = [
     { symbol: "BTCUSDT", timeframe: "1H", price: "68,420", change: "+2.3%", positive: true },
     { symbol: "AVAXUSDT", timeframe: "15m", price: "14.82", change: "-1.9%", positive: false },
     { symbol: "SEIUSDT", timeframe: "4H", price: "0.17", change: "-4.5%", positive: false },
   ];
+
+  const handleSymbolClick = (symbol: string) => {
+    setSelectedSymbol(symbol);
+    toast({
+      title: "تم تغيير العملة",
+      description: `جاري تحميل بيانات ${symbol}`,
+    });
+  };
 
   return (
     <aside className="hidden lg:flex lg:flex-col lg:col-span-2 gap-3">
@@ -42,10 +55,11 @@ const AccountSidebar = () => {
           {watchlist.map((item, index) => (
             <button
               key={index}
-              className={`w-full flex items-center justify-between px-2 py-1.5 rounded-xl border transition ${
-                index === 0
-                  ? "bg-muted/50 border-muted hover:border-secondary/60"
-                  : "bg-muted/20 border-border hover:border-secondary/60"
+              onClick={() => handleSymbolClick(item.symbol)}
+              className={`w-full flex items-center justify-between px-2 py-1.5 rounded-xl border transition-all duration-200 ${
+                selectedSymbol === item.symbol
+                  ? "bg-muted/50 border-secondary scale-105 shadow-glow"
+                  : "bg-muted/20 border-border hover:border-secondary/60 hover:scale-102"
               }`}
             >
               <div className="flex flex-col items-start">
