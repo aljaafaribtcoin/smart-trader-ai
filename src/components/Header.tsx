@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Button } from "./ui/button";
 
 const Header = () => {
+  const [isDark, setIsDark] = useState(true);
   return (
     <header className="h-16 border-b border-border backdrop-blur bg-background/80 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 flex items-center justify-between h-full">
@@ -30,8 +32,13 @@ const Header = () => {
             </Button>
           </div>
 
-          <Button variant="outline" size="icon" className="w-9 h-9 rounded-2xl">
-            ☾
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setIsDark(!isDark)}
+            className="w-9 h-9 rounded-2xl transition-all duration-200 hover:scale-110 hover:rotate-12"
+          >
+            {isDark ? "☾" : "☀️"}
           </Button>
 
           <div className="flex items-center gap-2">

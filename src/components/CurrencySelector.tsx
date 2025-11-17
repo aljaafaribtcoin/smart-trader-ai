@@ -1,7 +1,13 @@
+import { useState } from "react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
+import { useToast } from "@/hooks/use-toast";
 
 const CurrencySelector = () => {
+  const [selectedTimeframe, setSelectedTimeframe] = useState("1D");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const { toast } = useToast();
+
   const timeframes = ["5m", "15m", "1H", "4H", "1D"];
   const frameSignals = [
     { tf: "5m", signal: "تذبذب", color: "text-warning" },
@@ -9,6 +15,22 @@ const CurrencySelector = () => {
     { tf: "1H", signal: "ضعيف صاعد", color: "text-warning" },
     { tf: "4H", signal: "هابط", color: "text-destructive" },
   ];
+
+  const handleAnalyze = () => {
+    setIsAnalyzing(true);
+    toast({
+      title: "جاري التحليل...",
+      description: "الذكاء الاصطناعي يحلل جميع الفريمات والمؤشرات",
+    });
+    
+    setTimeout(() => {
+      setIsAnalyzing(false);
+      toast({
+        title: "اكتمل التحليل!",
+        description: "تم العثور على فرصة Long بنسبة ثقة 84%",
+      });
+    }, 2000);
+  };
 
   return (
     <Card className="px-3 sm:px-4 py-2.5 flex flex-col gap-3 shadow-soft">
@@ -29,13 +51,14 @@ const CurrencySelector = () => {
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex bg-muted rounded-xl border text-[11px] overflow-hidden">
-            {timeframes.map((tf, index) => (
+            {timeframes.map((tf) => (
               <button
                 key={tf}
-                className={`px-2.5 py-1.5 border-l border-border last:border-l-0 transition ${
-                  tf === "1D"
-                    ? "bg-primary/20 text-primary font-semibold"
-                    : "text-muted-foreground hover:text-foreground"
+                onClick={() => setSelectedTimeframe(tf)}
+                className={`px-2.5 py-1.5 border-l border-border last:border-l-0 transition-all duration-200 ${
+                  tf === selectedTimeframe
+                    ? "bg-primary/20 text-primary font-semibold scale-105"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 }`}
               >
                 {tf}
@@ -43,8 +66,14 @@ const CurrencySelector = () => {
             ))}
           </div>
 
-          <Button className="px-3 sm:px-4 py-1.5 h-auto rounded-2xl bg-gradient-primary text-xs sm:text-sm font-semibold shadow-glow border border-success/50">
-            🚀 تحليل AI للفريمات الآن
+          <Button 
+            onClick={handleAnalyze}
+            disabled={isAnalyzing}
+            className={`px-3 sm:px-4 py-1.5 h-auto rounded-2xl bg-gradient-primary text-xs sm:text-sm font-semibold shadow-glow border border-success/50 transition-all duration-300 ${
+              isAnalyzing ? "animate-pulse" : "hover:scale-105"
+            }`}
+          >
+            {isAnalyzing ? "⏳ جاري التحليل..." : "🚀 تحليل AI للفريمات الآن"}
           </Button>
         </div>
       </div>
