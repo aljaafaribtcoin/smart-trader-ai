@@ -1,33 +1,18 @@
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
+import { useTrades } from "@/hooks/api/useTrades";
+import { useUserStore } from "@/store/userStore";
+import { LoadingSkeleton } from "./common/LoadingSkeleton";
+import { ErrorMessage } from "./common/ErrorMessage";
+import { EmptyState } from "./common/EmptyState";
+import { TrendingUp } from "lucide-react";
 
 const TradesTable = () => {
   const [activeTab, setActiveTab] = useState<"open" | "closed">("open");
-  const trades = [
-    {
-      symbol: "AVAXUSDT",
-      type: "Long",
-      typeColor: "text-success",
-      entry: "14.45",
-      stop: "14.18",
-      target: "15.30",
-      pnl: "+3.2%",
-      pnlColor: "text-success",
-      reason: "ارتداد من منطقة طلب + خروج RSI من التشبع البيعي + زيادة الفوليوم.",
-    },
-    {
-      symbol: "BTCUSDT",
-      type: "Short",
-      typeColor: "text-destructive",
-      entry: "69,500",
-      stop: "70,200",
-      target: "67,800",
-      pnl: "-1.1%",
-      pnlColor: "text-destructive",
-      reason: "رفض قوي عند مقاومة أسبوعية مع دايفرجنس سلبي في MACD.",
-    },
-  ];
+  const { userId } = useUserStore();
+  
+  const { data: trades, isLoading, error } = useTrades(userId, activeTab);
 
   return (
     <Card className="p-3 sm:p-4 shadow-soft">
@@ -56,41 +41,58 @@ const TradesTable = () => {
           </Button>
         </div>
       </div>
-      <div className="overflow-x-auto text-[11px]">
-        <table className="min-w-full border-separate border-spacing-y-1">
-          <thead className="text-muted-foreground">
-            <tr>
-              <th className="text-right py-1.5 pr-2">العملة</th>
-              <th className="text-right py-1.5">نوع الصفقة</th>
-              <th className="text-right py-1.5">الدخول</th>
-              <th className="text-right py-1.5">الوقف</th>
-              <th className="text-right py-1.5">الهدف</th>
-              <th className="text-right py-1.5">الربح/الخسارة</th>
-              <th className="text-right py-1.5">سبب الدخول (AI)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {trades.map((trade, index) => (
-              <tr
-                key={index}
-                className={`transition-all duration-200 animate-fade-in ${
-                  index === 0
-                    ? "bg-muted/50 hover:bg-muted/70 hover:scale-[1.01]"
-                    : "bg-muted/30 hover:bg-muted/50 hover:scale-[1.01]"
-                }`}
-              >
-                <td className="py-1.5 pr-2 font-semibold">{trade.symbol}</td>
-                <td className={`py-1.5 font-semibold ${trade.typeColor}`}>{trade.type}</td>
-                <td className="py-1.5">{trade.entry}</td>
-                <td className="py-1.5">{trade.stop}</td>
-                <td className="py-1.5">{trade.target}</td>
-                <td className={`py-1.5 font-semibold ${trade.pnlColor}`}>{trade.pnl}</td>
-                <td className="py-1.5 text-muted-foreground">{trade.reason}</td>
+      {isLoading ? (
+        <LoadingSkeleton type="table" count={5} />
+      ) : error ? (
+        <ErrorMessage message="فشل تحميل الصفقات" />
+      ) : trades && trades.length > 0 ? (
+        <div className="overflow-x-auto text-[11px]">
+          <table className="min-w-full border-separate border-spacing-y-1">
+            <thead className="text-muted-foreground">
+              <tr>
+                <th className="text-right py-1.5 pr-2">العملة</th>
+                <th className="text-right py-1.5">نوع الصفقة</th>
+                <th className="text-right py-1.5">الدخول</th>
+                <th className="text-right py-1.5">الوقف</th>
+                <th className="text-right py-1.5">الهدف</th>
+                <th className="text-right py-1.5">الربح/الخسارة</th>
+                <th className="text-right py-1.5">سبب الدخول (AI)</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {trades.map((trade) => {
+                const pnl = trade.pnl || 0;
+                const pnlPercent = trade.pnlPercentage?.toFixed(2) || '0.00';
+                
+                return (
+                  <tr
+                    key={trade.id}
+                    className="bg-muted/30 hover:bg-muted/50 hover:scale-[1.01] transition-all duration-200 animate-fade-in"
+                  >
+                    <td className="py-1.5 pr-2 font-semibold">{trade.symbol}</td>
+                    <td className={`py-1.5 font-semibold ${trade.type === 'long' ? 'text-success' : 'text-destructive'}`}>
+                      {trade.type === 'long' ? 'Long' : 'Short'}
+                    </td>
+                    <td className="py-1.5">{trade.entryPrice.toFixed(2)}</td>
+                    <td className="py-1.5">{trade.stopLoss.toFixed(2)}</td>
+                    <td className="py-1.5">{trade.takeProfits[0]?.price.toFixed(2) || '-'}</td>
+                    <td className={`py-1.5 font-semibold ${pnl >= 0 ? 'text-success' : 'text-destructive'}`}>
+                      {pnl >= 0 ? '+' : ''}{pnlPercent}%
+                    </td>
+                    <td className="py-1.5 text-muted-foreground">{trade.aiReason || 'تحليل AI'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <EmptyState
+          icon={TrendingUp}
+          title="لا توجد صفقات"
+          description={activeTab === 'open' ? 'لا توجد صفقات مفتوحة حالياً' : 'لا توجد صفقات مغلقة'}
+        />
+      )}
     </Card>
   );
 };

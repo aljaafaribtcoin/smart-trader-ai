@@ -1,12 +1,13 @@
-import { useState } from "react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useTradingStore } from "@/store/tradingStore";
+import { useAnalyzeSymbol } from "@/hooks/api/useAIAnalysis";
 
 const CurrencySelector = () => {
-  const [selectedTimeframe, setSelectedTimeframe] = useState("1D");
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
+  const { selectedSymbol, selectedTimeframe, setTimeframe } = useTradingStore();
+  const { mutate: analyzeSymbol, isPending: isAnalyzing } = useAnalyzeSymbol();
 
   const timeframes = ["5m", "15m", "1H", "4H", "1D"];
   const frameSignals = [
@@ -17,19 +18,7 @@ const CurrencySelector = () => {
   ];
 
   const handleAnalyze = () => {
-    setIsAnalyzing(true);
-    toast({
-      title: "جاري التحليل...",
-      description: "الذكاء الاصطناعي يحلل جميع الفريمات والمؤشرات",
-    });
-    
-    setTimeout(() => {
-      setIsAnalyzing(false);
-      toast({
-        title: "اكتمل التحليل!",
-        description: "تم العثور على فرصة Long بنسبة ثقة 84%",
-      });
-    }, 2000);
+    analyzeSymbol({ symbol: selectedSymbol, timeframe: selectedTimeframe });
   };
 
   return (
@@ -38,7 +27,7 @@ const CurrencySelector = () => {
         <div className="flex items-center gap-2">
           <div className="text-right">
             <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-semibold">AVAX / USDT</h2>
+              <h2 className="text-base sm:text-lg font-semibold">{selectedSymbol.replace('USDT', ' / USDT')}</h2>
               <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">
                 Futures 10x
               </span>
@@ -54,7 +43,7 @@ const CurrencySelector = () => {
             {timeframes.map((tf) => (
               <button
                 key={tf}
-                onClick={() => setSelectedTimeframe(tf)}
+                onClick={() => setTimeframe(tf)}
                 className={`px-2.5 py-1.5 border-l border-border last:border-l-0 transition-all duration-200 ${
                   tf === selectedTimeframe
                     ? "bg-primary/20 text-primary font-semibold scale-105"
