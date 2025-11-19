@@ -2,28 +2,47 @@ import { useState } from "react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useTradingStore } from "@/store/tradingStore";
+import { useUserStore } from "@/store/userStore";
+import { useAIAnalysis } from "@/hooks/api/useAIAnalysis";
+import { useExecuteTrade } from "@/hooks/api/useTrades";
+import { LoadingSkeleton } from "./common/LoadingSkeleton";
+import { ErrorMessage } from "./common/ErrorMessage";
+import { ConfirmDialog } from "./common/ConfirmDialog";
 
 const TradeCard = () => {
-  const [isExecuting, setIsExecuting] = useState(false);
   const { toast } = useToast();
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const { selectedSymbol, selectedTimeframe } = useTradingStore();
+  const { userId, preferences } = useUserStore();
+  
+  const { data: analysis, isLoading, error } = useAIAnalysis(selectedSymbol, selectedTimeframe);
+  const { mutate: executeTrade, isPending: isExecuting } = useExecuteTrade();
 
   const handleExecuteTrade = () => {
-    setIsExecuting(true);
-    toast({
-      title: "جاري تنفيذ الصفقة...",
-      description: "يتم إرسال الأوامر للمنصة",
+    if (!analysis) return;
+    
+    const tradeType: 'long' | 'short' = analysis.signalType === 'neutral' ? 'long' : analysis.signalType;
+    
+    executeTrade({
+      userId,
+      symbol: selectedSymbol,
+      type: tradeType,
+      entryPrice: analysis.entryZone.min,
+      stopLoss: analysis.stopLoss,
+      takeProfits: analysis.takeProfits.map(tp => ({ level: 1, price: tp, percentage: 100, hit: false })),
+      positionSize: analysis.positionSizing,
+      leverage: preferences.defaultLeverage,
     });
-
-    setTimeout(() => {
-      setIsExecuting(false);
-      toast({
-        title: "تم فتح الصفقة!",
-        description: "صفقة Long على AVAXUSDT بنجاح",
-      });
-    }, 1500);
+    setShowConfirmDialog(false);
   };
+  if (isLoading) return <LoadingSkeleton type="card" count={1} />;
+  if (error) return <ErrorMessage message="فشل تحميل تحليل AI" />;
+  if (!analysis) return null;
+
   return (
-    <Card className="p-3 flex flex-col gap-3 shadow-soft">
+    <>
+      <Card className="p-3 flex flex-col gap-3 shadow-soft">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-semibold">صفقة AI المقترحة (Confluence)</h3>
@@ -34,9 +53,9 @@ const TradeCard = () => {
         <div className="flex flex-col items-end">
           <span className="text-[11px] text-muted-foreground mb-0.5">درجة الثقة</span>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-success">84 / 100</span>
+            <span className="text-xs font-semibold text-success">{analysis.confidenceScore} / 100</span>
             <div className="w-16 h-1.5 rounded-full bg-border overflow-hidden">
-              <div className="w-[84%] h-full bg-gradient-to-l from-success to-warning"></div>
+              <div style={{ width: `${analysis.confidenceScore}%` }} className="h-full bg-gradient-to-l from-success to-warning"></div>
             </div>
           </div>
         </div>
@@ -46,10 +65,10 @@ const TradeCard = () => {
         <div>
           <div className="text-muted-foreground">نوع الصفقة المقترح</div>
           <div className="flex items-center gap-2 mt-1">
-            <span className="px-2.5 py-1 rounded-full bg-success/15 text-success border border-success/50 font-semibold">
-              ✅ Long (شراء)
+            <span className={`px-2.5 py-1 rounded-full ${analysis.signalType === 'long' ? 'bg-success/15 text-success border-success/50' : 'bg-destructive/15 text-destructive border-destructive/50'} border font-semibold`}>
+              {analysis.signalType === 'long' ? '✅ Long (شراء)' : '❌ Short (بيع)'}
             </span>
-            <span className="px-2 py-1 rounded-full bg-muted border">Swing / ارتداد متوسط</span>
+            <span className="px-2 py-1 rounded-full bg-muted border">{analysis.analysisType}</span>
           </div>
         </div>
         <div className="text-right text-[11px] text-muted-foreground">
@@ -65,24 +84,25 @@ const TradeCard = () => {
       <div className="grid grid-cols-3 gap-2 text-[11px]">
         <Card className="bg-muted/50 p-2 border-success/40">
           <div className="text-muted-foreground mb-0.5">منطقة الدخول</div>
-          <div className="text-sm font-semibold text-success">14.40 - 14.55</div>
+          <div className="text-sm font-semibold text-success">{analysis.entryZone.min} - {analysis.entryZone.max}</div>
           <div className="text-[10px] text-muted-foreground mt-0.5">
-            يفضل انتظار شمعة تأكيد فوق EMA 8
+            يفضل انتظار شمعة تأكيد
           </div>
         </Card>
         <Card className="bg-muted/50 p-2 border-destructive/40">
           <div className="text-muted-foreground mb-0.5">وقف الخسارة الذكي</div>
-          <div className="text-sm font-semibold text-destructive">14.18</div>
+          <div className="text-sm font-semibold text-destructive">{analysis.stopLoss.toFixed(2)}</div>
           <div className="text-[10px] text-muted-foreground mt-0.5">أسفل آخر قاع + أسفل منطقة الطلب</div>
         </Card>
         <Card className="bg-muted/50 p-2 border-warning/40">
           <div className="text-muted-foreground mb-0.5">أهداف الربح</div>
           <div className="text-[10px]">
-            TP1: <span className="font-semibold text-warning">14.90</span>
-            <br />
-            TP2: <span className="font-semibold text-warning">15.30</span>
-            <br />
-            TP3: <span className="font-semibold text-warning">15.80</span>
+            {analysis.takeProfits.map((tp, idx) => (
+              <div key={idx}>
+                TP{idx + 1}: <span className="font-semibold text-warning">{tp.toFixed(2)}</span>
+                {idx < analysis.takeProfits.length - 1 && <br />}
+              </div>
+            ))}
           </div>
         </Card>
       </div>
@@ -102,6 +122,16 @@ const TradeCard = () => {
         </Button>
       </div>
     </Card>
+    
+    <ConfirmDialog
+      open={showConfirmDialog}
+      onOpenChange={setShowConfirmDialog}
+      title="تأكيد تنفيذ الصفقة"
+      description={`هل أنت متأكد من تنفيذ صفقة ${analysis.signalType === 'long' ? 'Long' : 'Short'} على ${selectedSymbol}؟`}
+      confirmLabel="تنفيذ"
+      onConfirm={handleExecuteTrade}
+    />
+  </>
   );
 };
 

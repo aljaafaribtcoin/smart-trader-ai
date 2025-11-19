@@ -1,18 +1,32 @@
 import { Card } from "./ui/card";
+import { useTrendAnalysis, useVolumeAnalysis } from "@/hooks/api/useMarketData";
+import { useTradingStore } from "@/store/tradingStore";
+import { LoadingSkeleton } from "./common/LoadingSkeleton";
 
 const MarketInsights = () => {
+  const { selectedSymbol } = useTradingStore();
+  const { data: trendData, isLoading: trendLoading } = useTrendAnalysis(selectedSymbol);
+  const { data: volumeData, isLoading: volumeLoading } = useVolumeAnalysis(selectedSymbol);
+  
+  const isLoading = trendLoading || volumeLoading;
+
+  if (isLoading) return <LoadingSkeleton type="card" count={1} />;
+
+  const volumeTrend = volumeData?.trend === 'increasing' ? 'قوي' : volumeData?.trend === 'decreasing' ? 'ضعيف' : 'متوسط';
+  const volumeColor = volumeData?.trend === 'increasing' ? 'text-success' : 'text-warning';
+  
   const insights = [
     {
       title: "حجم السيولة",
-      status: "قوي",
-      statusColor: "text-success",
-      description: "السيولة الحالية أعلى من المتوسط 30 يوم، مع زيادة ملحوظة في عقود الشراء.",
+      status: volumeTrend,
+      statusColor: volumeColor,
+      description: `السيولة الحالية ${volumeData?.percentageChange && volumeData.percentageChange > 0 ? 'أعلى' : 'أقل'} من المتوسط 30 يوم`,
     },
     {
       title: "زخم الحركة",
       status: "يتعافى",
       statusColor: "text-warning",
-      description: "المؤشرات (RSI, Stoch, MACD) تظهر خروجاً تدريجياً من منطقة التشبع البيعي على الفريمات الصغيرة.",
+      description: "المؤشرات تظهر تحسناً تدريجياً على الفريمات الصغيرة",
     },
     {
       title: "مناطق السعر المهمة",
