@@ -1,13 +1,17 @@
+import { lazy, Suspense } from "react";
 import Header from "@/components/Header";
 import AccountSidebar from "@/components/AccountSidebar";
 import CurrencySelector from "@/components/CurrencySelector";
-import ChartSection from "@/components/ChartSection";
-import MarketInsights from "@/components/MarketInsights";
-import TradeCard from "@/components/TradeCard";
-import AIAnalysis from "@/components/AIAnalysis";
-import TradesTable from "@/components/TradesTable";
-import PatternScanner from "@/components/PatternScanner";
-import AIChat from "@/components/AIChat";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
+
+// Lazy load heavy components
+const ChartSection = lazy(() => import("@/components/ChartSection"));
+const MarketInsights = lazy(() => import("@/components/MarketInsights"));
+const TradeCard = lazy(() => import("@/components/TradeCard"));
+const AIAnalysis = lazy(() => import("@/components/AIAnalysis"));
+const TradesTable = lazy(() => import("@/components/TradesTable"));
+const PatternScanner = lazy(() => import("@/components/PatternScanner"));
+const AIChat = lazy(() => import("@/components/AIChat"));
 
 const Index = () => {
   return (
@@ -23,22 +27,36 @@ const Index = () => {
 
             <div className="grid grid-cols-12 gap-4">
               <div className="col-span-12 xl:col-span-8 flex flex-col gap-3">
-                <ChartSection />
-                <MarketInsights />
+                <Suspense fallback={<LoadingSkeleton type="chart" />}>
+                  <ChartSection />
+                </Suspense>
+                <Suspense fallback={<LoadingSkeleton type="card" />}>
+                  <MarketInsights />
+                </Suspense>
               </div>
 
               <div className="col-span-12 xl:col-span-4 flex flex-col gap-3">
-                <TradeCard />
-                <AIAnalysis />
+                <Suspense fallback={<LoadingSkeleton type="card" />}>
+                  <TradeCard />
+                </Suspense>
+                <Suspense fallback={<LoadingSkeleton type="card" />}>
+                  <AIAnalysis />
+                </Suspense>
               </div>
             </div>
 
-            <TradesTable />
+            <Suspense fallback={<LoadingSkeleton type="table" count={5} />}>
+              <TradesTable />
+            </Suspense>
           </section>
 
           <aside className="col-span-12 lg:col-span-3 flex flex-col gap-3">
-            <PatternScanner />
-            <AIChat />
+            <Suspense fallback={<LoadingSkeleton type="card" />}>
+              <PatternScanner />
+            </Suspense>
+            <Suspense fallback={<LoadingSkeleton type="card" />}>
+              <AIChat />
+            </Suspense>
           </aside>
         </div>
       </main>
