@@ -1,8 +1,9 @@
-import { useState } from "react";
 import { Button } from "./ui/button";
+import { Notifications } from "./Notifications";
+import { ThemeToggle } from "./ThemeToggle";
+import { UserMenu } from "./UserMenu";
 
 const Header = () => {
-  const [isDark, setIsDark] = useState(true);
   return (
     <header className="h-16 border-b border-border backdrop-blur bg-background/80 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 flex items-center justify-between h-full">
@@ -32,24 +33,9 @@ const Header = () => {
             </Button>
           </div>
 
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setIsDark(!isDark)}
-            className="w-9 h-9 rounded-2xl transition-all duration-200 hover:scale-110 hover:rotate-12"
-          >
-            {isDark ? "☾" : "☀️"}
-          </Button>
-
-          <div className="flex items-center gap-2">
-            <div className="text-right text-xs hidden sm:block">
-              <div className="font-semibold">حساب المتداول</div>
-              <div className="text-[10px] text-muted-foreground">خطة: Pro</div>
-            </div>
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center text-xs font-bold">
-              K
-            </div>
-          </div>
+          <Notifications />
+          <ThemeToggle />
+          <UserMenu />
         </div>
       </div>
     </header>
