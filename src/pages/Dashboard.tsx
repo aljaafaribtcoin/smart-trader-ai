@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import Header from "@/components/Header";
 import { useTrades } from "@/hooks/api/useTrades";
 import { usePatterns } from "@/hooks/api/usePatterns";
 import { useAccount } from "@/hooks/api/useAccount";
@@ -114,22 +115,24 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen p-6 bg-background">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              لوحة الإحصائيات
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              نظرة شاملة على أداء التداول والأنماط
-            </p>
+    <>
+      <Header />
+      <div className="min-h-screen p-4 sm:p-6 bg-background">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                لوحة الإحصائيات
+              </h1>
+              <p className="text-muted-foreground mt-1 text-sm sm:text-base">
+                نظرة شاملة على أداء التداول والأنماط
+              </p>
+            </div>
+            <Badge variant="secondary" className="text-sm sm:text-lg px-3 py-1.5 sm:px-4 sm:py-2">
+              {account ? `${account.balance.toFixed(2)} USDT` : 'جاري التحميل...'}
+            </Badge>
           </div>
-          <Badge variant="secondary" className="text-lg px-4 py-2">
-            {account ? `${account.balance.toFixed(2)} USDT` : 'جاري التحميل...'}
-          </Badge>
-        </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -289,6 +292,7 @@ const Dashboard = () => {
         </Card>
       </div>
     </div>
+    </>
   );
 };
 

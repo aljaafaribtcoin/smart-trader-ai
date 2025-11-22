@@ -5,13 +5,15 @@ import { Button } from '@/components/ui/button';
 import { SignalCard } from '@/components/SignalCard';
 import { LoadingSkeleton } from '@/components/common/LoadingSkeleton';
 import { EmptyState } from '@/components/common/EmptyState';
+import Header from '@/components/Header';
 import { 
   Sparkles, 
   Filter,
   TrendingUp,
   TrendingDown,
   Clock,
-  CheckCircle2
+  CheckCircle2,
+  RefreshCw
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -22,7 +24,7 @@ const Signals = () => {
   const [filter, setFilter] = useState<FilterType>('all');
 
   // Fetch signals from Supabase
-  const { data: signals = [], isLoading } = useQuery({
+  const { data: signals = [], isLoading, refetch } = useQuery({
     queryKey: ['trading-signals'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -67,21 +69,33 @@ const Signals = () => {
   ];
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent flex items-center gap-3">
-                <Sparkles className="h-8 w-8 text-primary" />
-                توصيات التداول
-              </h1>
-              <p className="text-muted-foreground mt-2 text-lg">
-                إشارات تداول ذكية مدعومة بالذكاء الاصطناعي
-              </p>
+    <>
+      <Header />
+      <div className="min-h-screen p-4 sm:p-6 bg-gradient-to-br from-background via-background to-muted/20">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Header */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent flex items-center gap-3">
+                  <Sparkles className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
+                  توصيات التداول
+                </h1>
+                <p className="text-muted-foreground mt-2 text-base sm:text-lg">
+                  إشارات تداول ذكية مدعومة بالذكاء الاصطناعي
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetch()}
+                disabled={isLoading}
+                className="gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">تحديث</span>
+              </Button>
             </div>
-          </div>
 
           {/* Stats Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -155,8 +169,9 @@ const Signals = () => {
             ))}
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
