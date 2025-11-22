@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { aiService } from '@/services/api';
 import { AIAnalysis, AIConfluence } from '@/types';
 import { CACHE_TIMES } from '@/services/constants';
 import { toast } from '@/hooks/use-toast';
@@ -14,14 +13,9 @@ export const useAIAnalysis = (
 ) => {
   return useQuery({
     queryKey: ['ai-analysis', symbol, timeframe],
-    queryFn: async () => {
-      // For now, use mock data
-      return aiService.getMockAnalysis();
-      
-      // When API is ready:
-      // const response = await aiService.analyzeSymbol(symbol, timeframe);
-      // if (response.error) throw new Error(response.error.message);
-      // return response.data;
+    queryFn: async (): Promise<AIAnalysis | null> => {
+      // Return null until AI analysis is implemented
+      return null;
     },
     staleTime: CACHE_TIMES.MEDIUM,
     enabled,
@@ -43,29 +37,30 @@ export const useAnalyzeSymbol = () => {
       symbol: string;
       timeframe: string;
       analysisType?: string;
-    }) => {
-      // Simulate API call with delay
+    }): Promise<AIAnalysis | null> => {
+      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Return mock data
-      return aiService.getMockAnalysis();
-      
-      // When API is ready:
-      // const response = await aiService.analyzeSymbol(symbol, timeframe, analysisType);
-      // if (response.error) throw new Error(response.error.message);
-      // return response.data;
+      // Return null until AI analysis is implemented
+      return null;
     },
     onSuccess: (data, variables) => {
-      // Update cache
-      queryClient.setQueryData(
-        ['ai-analysis', variables.symbol, variables.timeframe],
-        data
-      );
-      
-      toast({
-        title: 'تم التحليل',
-        description: `تم تحليل ${variables.symbol} بنجاح - درجة الثقة: ${data.confidenceScore}%`,
-      });
+      if (data) {
+        queryClient.setQueryData(
+          ['ai-analysis', variables.symbol, variables.timeframe],
+          data
+        );
+        
+        toast({
+          title: 'تم التحليل',
+          description: `تم تحليل ${variables.symbol} بنجاح`,
+        });
+      } else {
+        toast({
+          title: 'قيد التطوير',
+          description: 'تحليل الذكاء الاصطناعي قيد التطوير',
+        });
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -83,14 +78,9 @@ export const useAnalyzeSymbol = () => {
 export const useConfluence = (symbol: string, timeframe: string) => {
   return useQuery({
     queryKey: ['ai-confluence', symbol, timeframe],
-    queryFn: async () => {
-      // For now, use mock data
-      return aiService.getMockConfluence();
-      
-      // When API is ready:
-      // const response = await aiService.getConfluence(symbol, timeframe);
-      // if (response.error) throw new Error(response.error.message);
-      // return response.data;
+    queryFn: async (): Promise<AIConfluence | null> => {
+      // Return null until AI confluence is implemented
+      return null;
     },
     staleTime: CACHE_TIMES.MEDIUM,
   });

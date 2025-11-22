@@ -1,23 +1,25 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { chatService } from '@/services/api';
+import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage, AIResponse } from '@/types';
 import { CACHE_TIMES } from '@/services/constants';
 
 /**
- * Hook to fetch chat messages
+ * Hook to fetch chat messages from Supabase
  */
 export const useChatMessages = (conversationId?: string, enabled: boolean = true) => {
   return useQuery({
     queryKey: ['chat-messages', conversationId],
     queryFn: async () => {
-      // For now, use mock data
-      return chatService.getMockMessages();
-      
-      // When API is ready:
-      // if (!conversationId) return [];
-      // const response = await chatService.getMessages(conversationId);
-      // if (response.error) throw new Error(response.error.message);
-      // return response.data || [];
+      if (!conversationId) return [];
+
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
     },
     staleTime: CACHE_TIMES.SHORT,
     enabled: enabled && !!conversationId,
@@ -39,18 +41,31 @@ export const useSendMessage = () => {
       userId: string;
       message: string;
       conversationId?: string;
-    }) => {
-      // For now, use mock response
-      const response = await chatService.getMockAIResponse(message);
-      return response;
+    }): Promise<AIResponse> => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      // Insert user message
+      const { error } = await supabase
+        .from('chat_messages')
+        .insert({
+          user_id: user.id,
+          conversation_id: conversationId,
+          role: 'user',
+          content: message
+        });
+
+      if (error) throw error;
+
+      // Simulate AI response for now
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // When API is ready:
-      // const response = await chatService.sendMessage(userId, message, conversationId);
-      // if (response.error) throw new Error(response.error.message);
-      // return response.data;
+      return {
+        message: 'تحليل الذكاء الاصطناعي قيد التطوير. سيتم إضافة الردود التلقائية قريباً.',
+        suggestions: [],
+      };
     },
     onSuccess: (data, variables) => {
-      // Invalidate messages query to refetch
       queryClient.invalidateQueries({ 
         queryKey: ['chat-messages', variables.conversationId] 
       });
@@ -62,15 +77,23 @@ export const useSendMessage = () => {
 };
 
 /**
- * Hook to fetch conversations
+ * Hook to fetch conversations from Supabase
  */
 export const useConversations = (userId: string) => {
   return useQuery({
     queryKey: ['conversations', userId],
     queryFn: async () => {
-      const response = await chatService.getConversations(userId);
-      if (response.error) throw new Error(response.error.message);
-      return response.data || [];
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
     },
     staleTime: CACHE_TIMES.LONG,
   });

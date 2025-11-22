@@ -30,7 +30,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
 export const useUserStore = create<UserState>()(
   persist(
     (set) => ({
-      userId: 'user-1', // Default mock user
+      userId: '',
       preferences: DEFAULT_PREFERENCES,
       
       updatePreferences: (newPreferences) =>

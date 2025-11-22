@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { tradeService } from '@/services/api';
+import { supabase } from '@/integrations/supabase/client';
 import { Trade, TradeExecution } from '@/types';
 import { CACHE_KEYS, CACHE_TIMES } from '@/services/constants';
 import { toast } from '@/hooks/use-toast';
 
 /**
- * Hook to fetch all trades
+ * Hook to fetch all trades from Supabase
  */
 export const useTrades = (
   userId: string,
@@ -15,14 +15,22 @@ export const useTrades = (
   return useQuery({
     queryKey: [CACHE_KEYS.TRADES, userId, status],
     queryFn: async () => {
-      // For now, use mock data
-      const allTrades = tradeService.getMockTrades();
-      return status ? allTrades.filter(trade => trade.status === status) : allTrades;
-      
-      // When API is ready:
-      // const response = await tradeService.getTrades(userId, status);
-      // if (response.error) throw new Error(response.error.message);
-      // return response.data?.data || [];
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      let query = supabase
+        .from('trades')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (status) {
+        query = query.eq('status', status);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
     },
     staleTime: CACHE_TIMES.SHORT,
     enabled,
@@ -33,29 +41,14 @@ export const useTrades = (
  * Hook to fetch open trades
  */
 export const useOpenTrades = (userId: string) => {
-  return useQuery({
-    queryKey: ['trades-open', userId],
-    queryFn: async () => {
-      const allTrades = tradeService.getMockTrades();
-      return allTrades.filter(trade => trade.status === 'open');
-    },
-    staleTime: CACHE_TIMES.SHORT,
-    refetchInterval: 5000, // Refetch every 5 seconds for open trades
-  });
+  return useTrades(userId, 'open', true);
 };
 
 /**
  * Hook to fetch closed trades
  */
 export const useClosedTrades = (userId: string) => {
-  return useQuery({
-    queryKey: ['trades-closed', userId],
-    queryFn: async () => {
-      const allTrades = tradeService.getMockTrades();
-      return allTrades.filter(trade => trade.status === 'closed');
-    },
-    staleTime: CACHE_TIMES.LONG,
-  });
+  return useTrades(userId, 'closed', true);
 };
 
 /**
@@ -66,28 +59,31 @@ export const useExecuteTrade = () => {
 
   return useMutation({
     mutationFn: async (tradeData: Partial<Trade>) => {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock response
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { data, error } = await supabase
+        .from('trades')
+        .insert({
+          user_id: user.id,
+          ...tradeData
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
       return {
-        tradeId: `trade-${Date.now()}`,
-        executionPrice: tradeData.entryPrice || 0,
-        executionTime: new Date(),
+        tradeId: data.id,
+        executionPrice: data.entry_price,
+        executionTime: new Date(data.entry_time),
         slippage: 0.02,
-        fees: 5.25,
+        fees: data.fees,
         success: true,
       } as TradeExecution;
-      
-      // When API is ready:
-      // const response = await tradeService.executeTrade(tradeData);
-      // if (response.error) throw new Error(response.error.message);
-      // return response.data;
     },
     onSuccess: (data) => {
-      // Invalidate trades queries
       queryClient.invalidateQueries({ queryKey: [CACHE_KEYS.TRADES] });
-      queryClient.invalidateQueries({ queryKey: ['trades-open'] });
       
       toast({
         title: 'تم تنفيذ الصفقة',
@@ -112,14 +108,22 @@ export const useCloseTrade = () => {
 
   return useMutation({
     mutationFn: async ({ tradeId, exitPrice }: { tradeId: string; exitPrice: number }) => {
-      const response = await tradeService.closeTrade(tradeId, exitPrice);
-      if (response.error) throw new Error(response.error.message);
-      return response.data;
+      const { data, error } = await supabase
+        .from('trades')
+        .update({
+          status: 'closed',
+          exit_price: exitPrice,
+          exit_time: new Date().toISOString()
+        })
+        .eq('id', tradeId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [CACHE_KEYS.TRADES] });
-      queryClient.invalidateQueries({ queryKey: ['trades-open'] });
-      queryClient.invalidateQueries({ queryKey: ['trades-closed'] });
       
       toast({
         title: 'تم إغلاق الصفقة',

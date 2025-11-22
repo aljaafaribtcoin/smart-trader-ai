@@ -1,23 +1,29 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { patternService } from '@/services/api';
+import { supabase } from '@/integrations/supabase/client';
 import { Pattern, PatternRecognitionResult } from '@/types';
 import { CACHE_KEYS, CACHE_TIMES } from '@/services/constants';
 import { toast } from '@/hooks/use-toast';
 
 /**
- * Hook to fetch detected patterns for a symbol
+ * Hook to fetch detected patterns for a symbol from Supabase
  */
 export const usePatterns = (symbol: string, enabled: boolean = true) => {
   return useQuery({
     queryKey: [CACHE_KEYS.PATTERNS, symbol],
     queryFn: async () => {
-      // For now, use mock data
-      return patternService.getMockPatterns();
-      
-      // When API is ready:
-      // const response = await patternService.getDetectedPatterns(symbol);
-      // if (response.error) throw new Error(response.error.message);
-      // return response.data || [];
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('patterns')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('symbol', symbol)
+        .eq('status', 'active')
+        .order('detected_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
     },
     staleTime: CACHE_TIMES.MEDIUM,
     enabled,
@@ -37,20 +43,21 @@ export const useScanPatterns = () => {
     }: {
       symbol: string;
       timeframes: string[];
-    }) => {
-      // Simulate API call
+    }): Promise<PatternRecognitionResult> => {
+      // Simulate scanning process
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Return mock data
-      return patternService.getMockPatternRecognition();
-      
-      // When API is ready:
-      // const response = await patternService.scanPatterns(symbol, timeframes);
-      // if (response.error) throw new Error(response.error.message);
-      // return response.data;
+      return {
+        symbol,
+        timeframe: timeframes[0] || '1H',
+        patterns: [],
+        totalCount: 0,
+        bullishCount: 0,
+        bearishCount: 0,
+        scannedAt: new Date(),
+      };
     },
     onSuccess: (data, variables) => {
-      // Update cache
       queryClient.setQueryData([CACHE_KEYS.PATTERNS, variables.symbol], data.patterns);
       
       const message = data.totalCount > 0
@@ -79,13 +86,19 @@ export const useWatchlistPatterns = (userId: string) => {
   return useQuery({
     queryKey: ['patterns-watchlist', userId],
     queryFn: async () => {
-      // For now, use mock data
-      return patternService.getMockPatterns();
-      
-      // When API is ready:
-      // const response = await patternService.getWatchlistPatterns(userId);
-      // if (response.error) throw new Error(response.error.message);
-      // return response.data || [];
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('patterns')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('detected_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      return data || [];
     },
     staleTime: CACHE_TIMES.MEDIUM,
   });

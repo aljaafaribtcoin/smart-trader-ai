@@ -1,10 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { marketService } from '@/services/api';
-import { TrendAnalysis, VolumeAnalysis, MomentumIndicators } from '@/types';
 import { CACHE_KEYS, CACHE_TIMES } from '@/services/constants';
 
 /**
- * Hook to fetch market data for a symbol
+ * Hook to fetch market data for a symbol from Supabase
  */
 export const useMarketData = (symbol: string, timeframe: string) => {
   return useQuery({
@@ -15,24 +14,20 @@ export const useMarketData = (symbol: string, timeframe: string) => {
       return response.data;
     },
     staleTime: CACHE_TIMES.SHORT,
-    refetchInterval: 5000, // Refetch every 5 seconds for real-time data
+    refetchInterval: 5000,
   });
 };
 
 /**
- * Hook to fetch trend analysis
+ * Hook to fetch trend analysis from Supabase
  */
 export const useTrendAnalysis = (symbol: string) => {
   return useQuery({
     queryKey: ['trend-analysis', symbol],
     queryFn: async () => {
-      // For now, use mock data
-      return marketService.getMockTrendAnalysis();
-      
-      // When API is ready:
-      // const response = await marketService.getTrendAnalysis(symbol);
-      // if (response.error) throw new Error(response.error.message);
-      // return response.data || [];
+      const response = await marketService.getTrendAnalysis(symbol);
+      if (response.error) throw new Error(response.error.message);
+      return response.data || [];
     },
     staleTime: CACHE_TIMES.MEDIUM,
   });
@@ -65,6 +60,6 @@ export const useMomentumIndicators = (symbol: string, timeframe: string) => {
       return response.data;
     },
     staleTime: CACHE_TIMES.SHORT,
-    refetchInterval: 10000, // Refetch every 10 seconds
+    refetchInterval: 10000,
   });
 };
