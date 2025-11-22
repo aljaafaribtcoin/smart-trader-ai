@@ -49,6 +49,13 @@ const Header = () => {
           >
             💼 الصفقات
           </NavLink>
+          <NavLink 
+            to="/patterns"
+            className="px-3 py-1.5 rounded-lg text-sm transition-colors hover:bg-muted"
+            activeClassName="bg-primary text-primary-foreground hover:bg-primary"
+          >
+            ✨ الأنماط
+          </NavLink>
         </nav>
 
         <div className="flex items-center gap-3">
