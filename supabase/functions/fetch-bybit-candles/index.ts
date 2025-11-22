@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
     const interval = intervalMap[timeframe] || '1';
     
     let totalUpdated = 0;
-    const results = [];
+    const results: Array<{ symbol: string; updated: number; candles?: any[] }> = [];
 
     // Process each symbol
     for (const symbol of symbols) {
@@ -128,13 +128,18 @@ Deno.serve(async (req) => {
       results.push({
         symbol,
         updated,
+        candles: candleData,
       });
     }
 
+    // Return candles data along with results
+    const allCandles = results.flatMap(r => r.candles || []);
+    
     return new Response(
       JSON.stringify({
         success: true,
         totalUpdated,
+        candles: allCandles,
         results,
       }),
       {
@@ -144,10 +149,21 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error in fetch-bybit-candles:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    console.error('Detailed error:', {
+      message: errorMessage,
+      stack: errorStack,
+      timestamp: new Date().toISOString(),
+    });
+    
     return new Response(
       JSON.stringify({
         success: false,
         error: errorMessage,
+        details: {
+          timestamp: new Date().toISOString(),
+        },
       }),
       {
         status: 500,

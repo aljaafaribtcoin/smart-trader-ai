@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Card } from './ui/card';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
 import { loadAllTimeframesForSymbol } from '@/controller/marketController';
 import { Timeframe } from '@/core/types';
 import { LoadingSkeleton } from './common/LoadingSkeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { errorLogger } from '@/lib/errorLogger';
 
 interface TimeframeMovement {
   timeframe: Timeframe;
@@ -13,6 +14,7 @@ interface TimeframeMovement {
   price: number;
   timestamp: Date;
   sparklineData: number[];
+  error?: boolean;
 }
 
 interface TimeframeMovementTrackerProps {
@@ -24,26 +26,30 @@ const TIMEFRAMES: Timeframe[] = ['3m', '5m', '15m', '1H', '4H', '1D'];
 export const TimeframeMovementTracker = ({ symbol }: TimeframeMovementTrackerProps) => {
   const [movements, setMovements] = useState<TimeframeMovement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [failedTimeframes, setFailedTimeframes] = useState<Timeframe[]>([]);
 
   const loadMovements = async () => {
     try {
       setIsLoading(true);
       const snapshots = await loadAllTimeframesForSymbol(symbol, TIMEFRAMES);
 
+      const failed: Timeframe[] = [];
       const newMovements = TIMEFRAMES.map((tf) => {
         const snapshot = snapshots[tf];
-        const candles = snapshot.candles;
 
-        if (candles.length === 0) {
+        if (!snapshot || snapshot.candles.length === 0) {
+          failed.push(tf);
           return {
             timeframe: tf,
             change: 0,
             price: 0,
             timestamp: new Date(),
             sparklineData: [],
+            error: true,
           };
         }
 
+        const candles = snapshot.candles;
         const firstCandle = candles[0];
         const latestCandle = candles[candles.length - 1];
         const change = ((latestCandle.close - firstCandle.open) / firstCandle.open) * 100;
@@ -57,12 +63,21 @@ export const TimeframeMovementTracker = ({ symbol }: TimeframeMovementTrackerPro
           price: latestCandle.close,
           timestamp: new Date(latestCandle.timestamp),
           sparklineData,
+          error: false,
         };
       });
 
       setMovements(newMovements);
+      setFailedTimeframes(failed);
+      
     } catch (error) {
-      console.error('Failed to load movements:', error);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      errorLogger.log({
+        type: 'api',
+        component: 'TimeframeMovementTracker',
+        message: 'Failed to load movements',
+        details: { symbol, error: message }
+      });
     } finally {
       setIsLoading(false);
     }
@@ -127,30 +142,56 @@ export const TimeframeMovementTracker = ({ symbol }: TimeframeMovementTrackerPro
         🔄 متتبع حركة الفريمات
       </h3>
 
+      {/* Warning banner for failed timeframes */}
+      {failedTimeframes.length > 0 && (
+        <div className="mb-4 p-2 text-xs text-warning bg-warning/10 rounded flex items-center gap-2">
+          <AlertCircle className="w-4 h-4" />
+          <span>فشل تحميل: {failedTimeframes.join(', ')}</span>
+        </div>
+      )}
+
       {/* Movement List */}
       <div className="space-y-2 mb-4 sm:mb-6">
         {movements.map((movement) => (
           <div
             key={movement.timeframe}
-            className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-accent/30 hover:bg-accent/50 transition-colors"
+            className={`flex items-center justify-between p-2 sm:p-3 rounded-lg transition-colors ${
+              movement.error 
+                ? 'bg-destructive/10 border border-destructive/20' 
+                : 'bg-accent/30 hover:bg-accent/50'
+            }`}
           >
-            <div className="flex items-center gap-2 sm:gap-3">
-              <span className="font-mono font-semibold text-xs sm:text-sm uppercase w-8 sm:w-10">
-                {movement.timeframe}
-              </span>
-              <div className="hidden sm:block">
-                <MiniSparkline data={movement.sparklineData} />
-              </div>
-            </div>
-            <div className="text-left">
-              <div className={`font-mono font-bold text-xs sm:text-sm ${getChangeColor(movement.change)}`}>
-                {movement.change > 0 ? '📈' : movement.change < 0 ? '📉' : '➖'}{' '}
-                {movement.change > 0 ? '+' : ''}{movement.change.toFixed(2)}%
-              </div>
-              <div className="hidden sm:block text-xs text-muted-foreground">
-                {formatDistanceToNow(movement.timestamp, { addSuffix: true, locale: ar })}
-              </div>
-            </div>
+            {movement.error ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-semibold text-xs sm:text-sm uppercase w-8 sm:w-10">
+                    {movement.timeframe}
+                  </span>
+                  <AlertCircle className="w-4 h-4 text-destructive" />
+                </div>
+                <span className="text-xs text-destructive">فشل التحميل</span>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <span className="font-mono font-semibold text-xs sm:text-sm uppercase w-8 sm:w-10">
+                    {movement.timeframe}
+                  </span>
+                  <div className="hidden sm:block">
+                    <MiniSparkline data={movement.sparklineData} />
+                  </div>
+                </div>
+                <div className="text-left">
+                  <div className={`font-mono font-bold text-xs sm:text-sm ${getChangeColor(movement.change)}`}>
+                    {movement.change > 0 ? '📈' : movement.change < 0 ? '📉' : '➖'}{' '}
+                    {movement.change > 0 ? '+' : ''}{movement.change.toFixed(2)}%
+                  </div>
+                  <div className="hidden sm:block text-xs text-muted-foreground">
+                    {formatDistanceToNow(movement.timestamp, { addSuffix: true, locale: ar })}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         ))}
       </div>

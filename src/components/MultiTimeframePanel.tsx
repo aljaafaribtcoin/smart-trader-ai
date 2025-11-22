@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
-import { TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, RefreshCw, AlertCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { loadAllTimeframesForSymbol } from '@/controller/marketController';
 import { Timeframe, MarketSnapshot } from '@/core/types';
 import { LoadingSkeleton } from './common/LoadingSkeleton';
 import { useToast } from '@/hooks/use-toast';
+import { ErrorState } from './common/ErrorState';
+import { errorLogger } from '@/lib/errorLogger';
 
 interface TimeframeAnalysis {
   timeframe: Timeframe;
@@ -17,6 +19,7 @@ interface TimeframeAnalysis {
   volumeRatio: number;
   price: number;
   change: number;
+  error?: boolean;
 }
 
 interface MultiTimeframePanelProps {
@@ -29,6 +32,7 @@ export const MultiTimeframePanel = ({ symbol }: MultiTimeframePanelProps) => {
   const [analyses, setAnalyses] = useState<TimeframeAnalysis[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const analyzeTimeframe = (snapshot: MarketSnapshot): Omit<TimeframeAnalysis, 'timeframe'> => {
@@ -97,24 +101,58 @@ export const MultiTimeframePanel = ({ symbol }: MultiTimeframePanelProps) => {
   const loadAnalyses = async () => {
     try {
       setIsLoading(true);
+      setError(null);
+      
       const snapshots = await loadAllTimeframesForSymbol(symbol, TIMEFRAMES);
 
       const newAnalyses = TIMEFRAMES.map((tf) => {
         const snapshot = snapshots[tf];
+        
+        if (!snapshot) {
+          // Mark failed timeframes with error flag
+          return {
+            timeframe: tf,
+            direction: 'neutral' as const,
+            strength: 'weak' as const,
+            rsi: null,
+            macdSignal: 'neutral' as const,
+            volumeRatio: 0,
+            price: 0,
+            change: 0,
+            error: true,
+          };
+        }
+        
         const analysis = analyzeTimeframe(snapshot);
-        return {
-          timeframe: tf,
-          ...analysis,
-        };
+        return { timeframe: tf, ...analysis };
       });
 
       setAnalyses(newAnalyses);
       setLastUpdate(new Date());
+      
+      // Show warning if some timeframes failed
+      const failedCount = newAnalyses.filter(a => a.error).length;
+      if (failedCount > 0) {
+        toast({
+          title: '⚠️ تحذير',
+          description: `فشل تحميل ${failedCount} من ${TIMEFRAMES.length} فريمات`,
+          variant: 'default',
+        });
+      }
     } catch (error) {
-      console.error('Failed to load multi-timeframe analysis:', error);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      setError(message);
+      
+      errorLogger.log({
+        type: 'api',
+        component: 'MultiTimeframePanel',
+        message: 'Failed to load timeframe analyses',
+        details: { symbol, error: message }
+      });
+      
       toast({
-        title: 'خطأ',
-        description: 'فشل تحميل تحليل الفريمات',
+        title: '❌ خطأ',
+        description: 'فشل تحميل تحليل الأطر الزمنية',
         variant: 'destructive',
       });
     } finally {
@@ -195,6 +233,18 @@ export const MultiTimeframePanel = ({ symbol }: MultiTimeframePanelProps) => {
     return <LoadingSkeleton />;
   }
 
+  if (error && analyses.length === 0) {
+    return (
+      <Card className="p-6">
+        <ErrorState
+          type="api"
+          message={error}
+          onRetry={loadAnalyses}
+        />
+      </Card>
+    );
+  }
+
   return (
     <Card className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-4 sm:mb-6">
@@ -219,42 +269,51 @@ export const MultiTimeframePanel = ({ symbol }: MultiTimeframePanelProps) => {
       {/* Mobile Cards View */}
       <div className="block lg:hidden space-y-3">
         {analyses.map((analysis) => (
-          <Card key={analysis.timeframe} className="p-3 border-border/50">
-            <div className="flex justify-between items-center mb-3">
-              <span className="font-mono font-semibold text-sm uppercase">
-                {analysis.timeframe}
-              </span>
-              <div className="flex items-center gap-2">
-                {getDirectionIcon(analysis.direction)}
-                {getDirectionBadge(analysis.direction)}
+          <Card key={analysis.timeframe} className={`p-3 ${analysis.error ? 'bg-destructive/5 border-destructive/20' : 'border-border/50'}`}>
+            {analysis.error ? (
+              <div className="flex items-center gap-2 text-destructive">
+                <AlertCircle className="w-4 h-4" />
+                <span className="text-sm">{analysis.timeframe}: فشل التحميل</span>
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-xs sm:text-sm">
-              <div>
-                <span className="text-muted-foreground block mb-1">السعر</span>
-                <span className="font-mono font-semibold">${analysis.price.toFixed(2)}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground block mb-1">التغير</span>
-                <span
-                  className={`font-mono font-semibold ${
-                    analysis.change > 0 ? 'text-success' : analysis.change < 0 ? 'text-destructive' : 'text-muted-foreground'
-                  }`}
-                >
-                  {analysis.change > 0 ? '+' : ''}{analysis.change.toFixed(2)}%
-                </span>
-              </div>
-              <div>
-                <span className="text-muted-foreground block mb-1">RSI</span>
-                <span className={`font-mono font-semibold ${getRSIColor(analysis.rsi)}`}>
-                  {analysis.rsi !== null ? analysis.rsi.toFixed(1) : '-'}
-                </span>
-              </div>
-              <div>
-                <span className="text-muted-foreground block mb-1">MACD</span>
-                <span className="text-lg">{getMACDIcon(analysis.macdSignal)}</span>
-              </div>
-            </div>
+            ) : (
+              <>
+                <div className="flex justify-between items-center mb-3">
+                  <span className="font-mono font-semibold text-sm uppercase">
+                    {analysis.timeframe}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {getDirectionIcon(analysis.direction)}
+                    {getDirectionBadge(analysis.direction)}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-xs sm:text-sm">
+                  <div>
+                    <span className="text-muted-foreground block mb-1">السعر</span>
+                    <span className="font-mono font-semibold">${analysis.price.toFixed(2)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block mb-1">التغير</span>
+                    <span
+                      className={`font-mono font-semibold ${
+                        analysis.change > 0 ? 'text-success' : analysis.change < 0 ? 'text-destructive' : 'text-muted-foreground'
+                      }`}
+                    >
+                      {analysis.change > 0 ? '+' : ''}{analysis.change.toFixed(2)}%
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block mb-1">RSI</span>
+                    <span className={`font-mono font-semibold ${getRSIColor(analysis.rsi)}`}>
+                      {analysis.rsi !== null ? analysis.rsi.toFixed(1) : '-'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block mb-1">MACD</span>
+                    <span className="text-lg">{getMACDIcon(analysis.macdSignal)}</span>
+                  </div>
+                </div>
+              </>
+            )}
           </Card>
         ))}
       </div>
@@ -278,51 +337,62 @@ export const MultiTimeframePanel = ({ symbol }: MultiTimeframePanelProps) => {
             {analyses.map((analysis) => (
               <tr
                 key={analysis.timeframe}
-                className="border-b border-border hover:bg-accent/50 transition-colors"
+                className={`border-b border-border transition-colors ${analysis.error ? 'bg-destructive/5' : 'hover:bg-accent/50'}`}
               >
-                <td className="py-3 px-4">
-                  <span className="font-mono font-semibold text-sm uppercase">
-                    {analysis.timeframe}
-                  </span>
-                </td>
-                <td className="py-3 px-4">
-                  <div className="flex items-center gap-2">
-                    {getDirectionIcon(analysis.direction)}
-                    {getDirectionBadge(analysis.direction)}
-                  </div>
-                </td>
-                <td className="py-3 px-4">
-                  <span className="font-mono text-sm">
-                    ${analysis.price.toFixed(2)}
-                  </span>
-                </td>
-                <td className="py-3 px-4">
-                  <span
-                    className={`font-mono text-sm font-semibold ${
-                      analysis.change > 0 ? 'text-success' : analysis.change < 0 ? 'text-destructive' : 'text-muted-foreground'
-                    }`}
-                  >
-                    {analysis.change > 0 ? '+' : ''}{analysis.change.toFixed(2)}%
-                  </span>
-                </td>
-                <td className="py-3 px-4">
-                  <span className={`font-mono text-sm font-semibold ${getRSIColor(analysis.rsi)}`}>
-                    {analysis.rsi !== null ? analysis.rsi.toFixed(1) : '-'}
-                  </span>
-                </td>
-                <td className="py-3 px-4">
-                  <span className="text-lg">{getMACDIcon(analysis.macdSignal)}</span>
-                </td>
-                <td className="py-3 px-4">
-                  <span
-                    className={`font-mono text-sm ${
-                      analysis.volumeRatio > 1.2 ? 'text-success' : analysis.volumeRatio < 0.8 ? 'text-destructive' : 'text-muted-foreground'
-                    }`}
-                  >
-                    {(analysis.volumeRatio * 100).toFixed(0)}%
-                  </span>
-                </td>
-                <td className="py-3 px-4">{getStrengthBadge(analysis.strength)}</td>
+                {analysis.error ? (
+                  <td colSpan={8} className="py-3 px-4">
+                    <div className="flex items-center gap-2 text-destructive">
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm">{analysis.timeframe}: فشل تحميل البيانات</span>
+                    </div>
+                  </td>
+                ) : (
+                  <>
+                    <td className="py-3 px-4">
+                      <span className="font-mono font-semibold text-sm uppercase">
+                        {analysis.timeframe}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        {getDirectionIcon(analysis.direction)}
+                        {getDirectionBadge(analysis.direction)}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="font-mono text-sm">
+                        ${analysis.price.toFixed(2)}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span
+                        className={`font-mono text-sm font-semibold ${
+                          analysis.change > 0 ? 'text-success' : analysis.change < 0 ? 'text-destructive' : 'text-muted-foreground'
+                        }`}
+                      >
+                        {analysis.change > 0 ? '+' : ''}{analysis.change.toFixed(2)}%
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`font-mono text-sm font-semibold ${getRSIColor(analysis.rsi)}`}>
+                        {analysis.rsi !== null ? analysis.rsi.toFixed(1) : '-'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="text-lg">{getMACDIcon(analysis.macdSignal)}</span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span
+                        className={`font-mono text-sm ${
+                          analysis.volumeRatio > 1.2 ? 'text-success' : analysis.volumeRatio < 0.8 ? 'text-destructive' : 'text-muted-foreground'
+                        }`}
+                      >
+                        {(analysis.volumeRatio * 100).toFixed(0)}%
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">{getStrengthBadge(analysis.strength)}</td>
+                  </>
+                )}
               </tr>
             ))}
           </tbody>
