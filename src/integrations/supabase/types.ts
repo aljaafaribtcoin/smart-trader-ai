@@ -131,6 +131,144 @@ export type Database = {
         }
         Relationships: []
       }
+      market_candles: {
+        Row: {
+          close: number
+          created_at: string
+          high: number
+          id: string
+          low: number
+          open: number
+          source: string
+          symbol: string
+          timeframe: string
+          timestamp: string
+          volume: number
+        }
+        Insert: {
+          close: number
+          created_at?: string
+          high: number
+          id?: string
+          low: number
+          open: number
+          source?: string
+          symbol: string
+          timeframe: string
+          timestamp: string
+          volume: number
+        }
+        Update: {
+          close?: number
+          created_at?: string
+          high?: number
+          id?: string
+          low?: number
+          open?: number
+          source?: string
+          symbol?: string
+          timeframe?: string
+          timestamp?: string
+          volume?: number
+        }
+        Relationships: []
+      }
+      market_prices: {
+        Row: {
+          change_24h: number | null
+          change_30d: number | null
+          change_7d: number | null
+          created_at: string
+          high_24h: number | null
+          id: string
+          last_updated: string
+          low_24h: number | null
+          market_cap: number | null
+          price: number
+          source: string
+          symbol: string
+          volume_24h: number | null
+        }
+        Insert: {
+          change_24h?: number | null
+          change_30d?: number | null
+          change_7d?: number | null
+          created_at?: string
+          high_24h?: number | null
+          id?: string
+          last_updated?: string
+          low_24h?: number | null
+          market_cap?: number | null
+          price: number
+          source?: string
+          symbol: string
+          volume_24h?: number | null
+        }
+        Update: {
+          change_24h?: number | null
+          change_30d?: number | null
+          change_7d?: number | null
+          created_at?: string
+          high_24h?: number | null
+          id?: string
+          last_updated?: string
+          low_24h?: number | null
+          market_cap?: number | null
+          price?: number
+          source?: string
+          symbol?: string
+          volume_24h?: number | null
+        }
+        Relationships: []
+      }
+      market_symbols: {
+        Row: {
+          circulating_supply: number | null
+          created_at: string
+          description: string | null
+          id: string
+          logo_url: string | null
+          market_cap: number | null
+          max_supply: number | null
+          name: string
+          rank: number | null
+          symbol: string
+          total_supply: number | null
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          circulating_supply?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          market_cap?: number | null
+          max_supply?: number | null
+          name: string
+          rank?: number | null
+          symbol: string
+          total_supply?: number | null
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          circulating_supply?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          market_cap?: number | null
+          max_supply?: number | null
+          name?: string
+          rank?: number | null
+          symbol?: string
+          total_supply?: number | null
+          updated_at?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           action_url: string | null
@@ -261,6 +399,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      technical_indicators: {
+        Row: {
+          atr: number | null
+          bb_lower: number | null
+          bb_middle: number | null
+          bb_upper: number | null
+          calculated_at: string
+          created_at: string
+          ema_20: number | null
+          ema_200: number | null
+          ema_50: number | null
+          id: string
+          macd_histogram: number | null
+          macd_signal: number | null
+          macd_value: number | null
+          rsi: number | null
+          stochastic_d: number | null
+          stochastic_k: number | null
+          symbol: string
+          timeframe: string
+        }
+        Insert: {
+          atr?: number | null
+          bb_lower?: number | null
+          bb_middle?: number | null
+          bb_upper?: number | null
+          calculated_at?: string
+          created_at?: string
+          ema_20?: number | null
+          ema_200?: number | null
+          ema_50?: number | null
+          id?: string
+          macd_histogram?: number | null
+          macd_signal?: number | null
+          macd_value?: number | null
+          rsi?: number | null
+          stochastic_d?: number | null
+          stochastic_k?: number | null
+          symbol: string
+          timeframe: string
+        }
+        Update: {
+          atr?: number | null
+          bb_lower?: number | null
+          bb_middle?: number | null
+          bb_upper?: number | null
+          calculated_at?: string
+          created_at?: string
+          ema_20?: number | null
+          ema_200?: number | null
+          ema_50?: number | null
+          id?: string
+          macd_histogram?: number | null
+          macd_signal?: number | null
+          macd_value?: number | null
+          rsi?: number | null
+          stochastic_d?: number | null
+          stochastic_k?: number | null
+          symbol?: string
+          timeframe?: string
+        }
+        Relationships: []
       }
       trades: {
         Row: {
