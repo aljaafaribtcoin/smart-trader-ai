@@ -7,6 +7,7 @@ import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import Index from "./pages/Index";
 import Charts from "./pages/Charts";
 import Trades from "./pages/Trades";
+import Patterns from "./pages/Patterns";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { useAuth } from "./hooks/useAuth";
@@ -72,6 +73,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Trades />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/patterns"
+              element={
+                <ProtectedRoute>
+                  <Patterns />
                 </ProtectedRoute>
               }
             />
