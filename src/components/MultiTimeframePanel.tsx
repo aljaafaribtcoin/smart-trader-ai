@@ -196,13 +196,13 @@ export const MultiTimeframePanel = ({ symbol }: MultiTimeframePanelProps) => {
   }
 
   return (
-    <Card className="p-6">
-      <div className="flex items-center justify-between mb-6">
+    <Card className="p-4 sm:p-6">
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
         <div>
-          <h3 className="text-xl font-bold flex items-center gap-2">
+          <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2">
             📊 تحليل الفريمات المتعددة
           </h3>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             آخر تحديث: {lastUpdate.toLocaleTimeString('ar-SA')}
           </p>
         </div>
@@ -212,11 +212,55 @@ export const MultiTimeframePanel = ({ symbol }: MultiTimeframePanelProps) => {
           onClick={loadAnalyses}
           disabled={isLoading}
         >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-3 h-3 sm:w-4 sm:h-4 ${isLoading ? 'animate-spin' : ''}`} />
         </Button>
       </div>
 
-      <div className="overflow-x-auto">
+      {/* Mobile Cards View */}
+      <div className="block lg:hidden space-y-3">
+        {analyses.map((analysis) => (
+          <Card key={analysis.timeframe} className="p-3 border-border/50">
+            <div className="flex justify-between items-center mb-3">
+              <span className="font-mono font-semibold text-sm uppercase">
+                {analysis.timeframe}
+              </span>
+              <div className="flex items-center gap-2">
+                {getDirectionIcon(analysis.direction)}
+                {getDirectionBadge(analysis.direction)}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-xs sm:text-sm">
+              <div>
+                <span className="text-muted-foreground block mb-1">السعر</span>
+                <span className="font-mono font-semibold">${analysis.price.toFixed(2)}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground block mb-1">التغير</span>
+                <span
+                  className={`font-mono font-semibold ${
+                    analysis.change > 0 ? 'text-success' : analysis.change < 0 ? 'text-destructive' : 'text-muted-foreground'
+                  }`}
+                >
+                  {analysis.change > 0 ? '+' : ''}{analysis.change.toFixed(2)}%
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground block mb-1">RSI</span>
+                <span className={`font-mono font-semibold ${getRSIColor(analysis.rsi)}`}>
+                  {analysis.rsi !== null ? analysis.rsi.toFixed(1) : '-'}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground block mb-1">MACD</span>
+                <span className="text-lg">{getMACDIcon(analysis.macdSignal)}</span>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden lg:block overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
@@ -286,26 +330,26 @@ export const MultiTimeframePanel = ({ symbol }: MultiTimeframePanelProps) => {
       </div>
 
       {/* Confluence Summary */}
-      <div className="mt-6 p-4 bg-accent/30 rounded-lg">
-        <h4 className="font-semibold mb-2">📈 ملخص التوافق</h4>
-        <div className="grid grid-cols-3 gap-4">
+      <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-accent/30 rounded-lg">
+        <h4 className="font-semibold mb-2 text-sm sm:text-base">📈 ملخص التوافق</h4>
+        <div className="grid grid-cols-3 gap-3 sm:gap-4">
           <div>
-            <span className="text-success font-semibold">
+            <span className="text-success font-semibold text-sm sm:text-base">
               {analyses.filter((a) => a.direction === 'bullish').length}
             </span>
-            <span className="text-sm text-muted-foreground mr-1">صاعد</span>
+            <span className="text-xs sm:text-sm text-muted-foreground mr-1">صاعد</span>
           </div>
           <div>
-            <span className="text-destructive font-semibold">
+            <span className="text-destructive font-semibold text-sm sm:text-base">
               {analyses.filter((a) => a.direction === 'bearish').length}
             </span>
-            <span className="text-sm text-muted-foreground mr-1">هابط</span>
+            <span className="text-xs sm:text-sm text-muted-foreground mr-1">هابط</span>
           </div>
           <div>
-            <span className="text-muted-foreground font-semibold">
+            <span className="text-muted-foreground font-semibold text-sm sm:text-base">
               {analyses.filter((a) => a.direction === 'neutral').length}
             </span>
-            <span className="text-sm text-muted-foreground mr-1">محايد</span>
+            <span className="text-xs sm:text-sm text-muted-foreground mr-1">محايد</span>
           </div>
         </div>
       </div>

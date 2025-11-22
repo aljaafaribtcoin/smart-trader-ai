@@ -267,30 +267,30 @@ export const IndicatorsDashboard = ({ symbol, timeframe }: IndicatorsDashboardPr
     if (items.length === 0) return null;
 
     return (
-      <div className="mb-6">
-        <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-muted-foreground">
+      <div className="mb-4 sm:mb-6">
+        <h4 className="text-xs sm:text-sm font-semibold mb-2 sm:mb-3 flex items-center gap-2 text-muted-foreground">
           {icon}
           {title}
         </h4>
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
           {items.map((indicator, index) => (
-            <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-accent/30 hover:bg-accent/50 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className={getStatusColor(indicator.status)}>
+            <div key={index} className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-accent/30 hover:bg-accent/50 transition-colors">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                <div className={`shrink-0 ${getStatusColor(indicator.status)}`}>
                   {indicator.icon}
                 </div>
-                <div>
-                  <div className="font-semibold text-sm">{indicator.name}</div>
-                  <div className="text-xs text-muted-foreground">
+                <div className="min-w-0 flex-1">
+                  <div className="font-semibold text-xs sm:text-sm truncate">{indicator.name}</div>
+                  <div className="text-[10px] sm:text-xs text-muted-foreground truncate">
                     {formatDistanceToNow(indicator.timestamp, { addSuffix: true, locale: ar })}
                   </div>
                 </div>
               </div>
-              <div className="text-left">
-                <div className={`font-mono font-bold ${getStatusColor(indicator.status)}`}>
+              <div className="text-left shrink-0">
+                <div className={`font-mono font-bold text-xs sm:text-sm ${getStatusColor(indicator.status)}`}>
                   {indicator.value}
                 </div>
-                <Badge variant={getStatusBadgeVariant(indicator.status) as any} className="text-xs mt-1">
+                <Badge variant={getStatusBadgeVariant(indicator.status) as any} className="text-[10px] sm:text-xs mt-1">
                   {indicator.statusLabel}
                 </Badge>
               </div>
@@ -302,8 +302,8 @@ export const IndicatorsDashboard = ({ symbol, timeframe }: IndicatorsDashboardPr
   };
 
   return (
-    <Card className="p-6">
-      <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+    <Card className="p-4 sm:p-6">
+      <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center gap-2">
         📈 لوحة المؤشرات الفنية
       </h3>
 
