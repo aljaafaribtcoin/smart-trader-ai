@@ -8,20 +8,23 @@ import {
   ApiResponse,
 } from '@/types';
 import { API_ENDPOINTS } from '../constants';
+import { supabaseMarketService } from './supabaseMarketService';
 
 export const marketService = {
   /**
    * Get market data for a symbol
    */
   async getMarketData(symbol: string, timeframe: string): Promise<ApiResponse<MarketData>> {
-    return apiClient.get<MarketData>(API_ENDPOINTS.MARKET_DATA, { symbol, timeframe });
+    // Use Supabase data instead of mock API
+    return supabaseMarketService.getMarketData(symbol);
   },
 
   /**
    * Get user's watchlist
    */
   async getWatchlist(userId: string): Promise<ApiResponse<WatchlistItem[]>> {
-    return apiClient.get<WatchlistItem[]>(`${API_ENDPOINTS.WATCHLIST}/${userId}`);
+    // Use Supabase data
+    return supabaseMarketService.getWatchlist(userId);
   },
 
   /**
@@ -32,32 +35,32 @@ export const marketService = {
     symbol: string,
     timeframe: string
   ): Promise<ApiResponse<WatchlistItem>> {
-    return apiClient.post<WatchlistItem>(API_ENDPOINTS.WATCHLIST, {
-      userId,
-      symbol,
-      timeframe,
-    });
+    // Use Supabase
+    return supabaseMarketService.addToWatchlist(userId, symbol, timeframe);
   },
 
   /**
    * Remove symbol from watchlist
    */
   async removeFromWatchlist(watchlistId: string): Promise<ApiResponse<void>> {
-    return apiClient.delete(`${API_ENDPOINTS.WATCHLIST}/${watchlistId}`);
+    // Use Supabase
+    return supabaseMarketService.removeFromWatchlist(watchlistId);
   },
 
   /**
    * Get trend analysis for a symbol
    */
   async getTrendAnalysis(symbol: string): Promise<ApiResponse<TrendAnalysis[]>> {
-    return apiClient.get<TrendAnalysis[]>(API_ENDPOINTS.TRENDS, { symbol });
+    // Use Supabase data with technical indicators
+    return supabaseMarketService.getTrendAnalysis(symbol);
   },
 
   /**
    * Get volume analysis
    */
   async getVolumeAnalysis(symbol: string): Promise<ApiResponse<VolumeAnalysis>> {
-    return apiClient.get<VolumeAnalysis>(`${API_ENDPOINTS.INDICATORS}/volume`, { symbol });
+    // Use Supabase data
+    return supabaseMarketService.getVolumeAnalysis(symbol);
   },
 
   /**
@@ -67,10 +70,8 @@ export const marketService = {
     symbol: string,
     timeframe: string
   ): Promise<ApiResponse<MomentumIndicators>> {
-    return apiClient.get<MomentumIndicators>(`${API_ENDPOINTS.INDICATORS}/momentum`, {
-      symbol,
-      timeframe,
-    });
+    // Use Supabase data
+    return supabaseMarketService.getMomentumIndicators(symbol, timeframe);
   },
 
   /**

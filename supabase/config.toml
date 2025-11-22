@@ -1,1 +1,13 @@
 project_id = "eyxqdgosabtgizwsrsiq"
+
+[functions.fetch-livecoinwatch-prices]
+verify_jwt = false
+
+[functions.fetch-bybit-candles]
+verify_jwt = false
+
+[functions.fetch-coinmarketcap-data]
+verify_jwt = false
+
+[functions.calculate-technical-indicators]
+verify_jwt = false
