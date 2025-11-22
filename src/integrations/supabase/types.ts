@@ -68,6 +68,42 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_results: {
+        Row: {
+          analysis_data: Json
+          bias: string | null
+          confidence: number | null
+          created_at: string
+          id: string
+          market_condition: string | null
+          symbol: string
+          timeframe: string
+          user_id: string | null
+        }
+        Insert: {
+          analysis_data: Json
+          bias?: string | null
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          market_condition?: string | null
+          symbol: string
+          timeframe: string
+          user_id?: string | null
+        }
+        Update: {
+          analysis_data?: Json
+          bias?: string | null
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          market_condition?: string | null
+          symbol?: string
+          timeframe?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           content: string
@@ -577,6 +613,75 @@ export type Database = {
           type?: Database["public"]["Enums"]["trade_type"]
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      trading_signals: {
+        Row: {
+          alternative_scenario: string | null
+          confidence: number | null
+          created_at: string
+          direction: string
+          entry_from: number
+          entry_to: number
+          id: string
+          invalidation_price: number | null
+          main_scenario: string
+          risk_reward: number
+          status: string
+          stop_loss: number
+          supporting_factors: Json | null
+          symbol: string
+          tags: string[] | null
+          telegram_summary: string | null
+          tp1: number
+          tp2: number
+          tp3: number
+          user_id: string | null
+        }
+        Insert: {
+          alternative_scenario?: string | null
+          confidence?: number | null
+          created_at?: string
+          direction: string
+          entry_from: number
+          entry_to: number
+          id?: string
+          invalidation_price?: number | null
+          main_scenario: string
+          risk_reward: number
+          status?: string
+          stop_loss: number
+          supporting_factors?: Json | null
+          symbol: string
+          tags?: string[] | null
+          telegram_summary?: string | null
+          tp1: number
+          tp2: number
+          tp3: number
+          user_id?: string | null
+        }
+        Update: {
+          alternative_scenario?: string | null
+          confidence?: number | null
+          created_at?: string
+          direction?: string
+          entry_from?: number
+          entry_to?: number
+          id?: string
+          invalidation_price?: number | null
+          main_scenario?: string
+          risk_reward?: number
+          status?: string
+          stop_loss?: number
+          supporting_factors?: Json | null
+          symbol?: string
+          tags?: string[] | null
+          telegram_summary?: string | null
+          tp1?: number
+          tp2?: number
+          tp3?: number
+          user_id?: string | null
         }
         Relationships: []
       }
