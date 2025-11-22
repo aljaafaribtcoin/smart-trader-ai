@@ -2,8 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 interface LiveCoinWatchCoin {
@@ -22,39 +22,39 @@ interface LiveCoinWatchCoin {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log("🚀 بدء تهيئة البيانات من LiveCoinWatch...");
+    console.log('🚀 بدء تحديث البيانات من LiveCoinWatch...');
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const liveCoinWatchKey = Deno.env.get("LIVECOINWATCH_API_KEY");
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const liveCoinWatchApiKey = Deno.env.get('LIVECOINWATCH_API_KEY');
 
-    if (!liveCoinWatchKey) {
-      throw new Error("LIVECOINWATCH_API_KEY غير موجود");
+    if (!liveCoinWatchApiKey) {
+      throw new Error('LIVECOINWATCH_API_KEY غير موجود');
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // العملات المطلوبة
-    const symbols = ["BTC", "ETH", "BNB", "SOL", "XRP", "ADA", "AVAX", "DOT"];
+    const symbols = ['BTC', 'ETH', 'BNB', 'SOL', 'XRP', 'ADA', 'AVAX', 'DOT'];
     
     console.log(`📊 جلب بيانات ${symbols.length} عملة من LiveCoinWatch...`);
 
     // جلب البيانات من LiveCoinWatch
-    const response = await fetch("https://api.livecoinwatch.com/coins/list", {
-      method: "POST",
+    const response = await fetch('https://api.livecoinwatch.com/coins/list', {
+      method: 'POST',
       headers: {
-        "content-type": "application/json",
-        "x-api-key": liveCoinWatchKey,
+        'content-type': 'application/json',
+        'x-api-key': liveCoinWatchApiKey,
       },
       body: JSON.stringify({
-        currency: "USD",
-        sort: "rank",
-        order: "ascending",
+        currency: 'USD',
+        sort: 'rank',
+        order: 'ascending',
         offset: 0,
         limit: 100,
         meta: true,
@@ -63,7 +63,7 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("❌ خطأ في استجابة LiveCoinWatch:", errorText);
+      console.error('❌ خطأ في استجابة LiveCoinWatch:', errorText);
       throw new Error(`LiveCoinWatch API error: ${response.status}`);
     }
 
@@ -71,14 +71,14 @@ serve(async (req) => {
     console.log(`✅ تم جلب ${allCoins.length} عملة من LiveCoinWatch`);
 
     // تصفية العملات المطلوبة فقط
-    const requestedCoins = allCoins.filter((coin) => 
-      symbols.includes(coin.code)
+    const requestedCoins = allCoins.filter(coin => 
+      symbols.some(symbol => coin.code === symbol)
     );
 
     console.log(`🔍 تم العثور على ${requestedCoins.length} عملة من القائمة المطلوبة`);
 
     // تحديث جدول market_prices
-    const pricesData = requestedCoins.map((coin) => ({
+    const pricesData = requestedCoins.map(coin => ({
       symbol: `${coin.code}USDT`,
       price: coin.rate || 0,
       volume_24h: coin.volume || 0,
@@ -88,55 +88,54 @@ serve(async (req) => {
       change_30d: coin.delta?.month || 0,
       high_24h: coin.rate ? coin.rate * (1 + ((coin.delta?.day || 0) / 100) / 2) : null,
       low_24h: coin.rate ? coin.rate * (1 - ((coin.delta?.day || 0) / 100) / 2) : null,
-      source: "livecoinwatch",
+      source: 'livecoinwatch',
       last_updated: new Date().toISOString(),
     }));
 
-    console.log("💾 تحديث جدول market_prices...");
+    console.log('💾 تحديث جدول market_prices...');
     const { error: pricesError } = await supabase
-      .from("market_prices")
+      .from('market_prices')
       .upsert(pricesData, {
-        onConflict: "symbol,source",
+        onConflict: 'symbol,source',
         ignoreDuplicates: false,
       });
 
     if (pricesError) {
-      console.error("❌ خطأ في تحديث الأسعار:", pricesError);
+      console.error('❌ خطأ في تحديث الأسعار:', pricesError);
       throw pricesError;
     }
 
     console.log(`✅ تم تحديث ${pricesData.length} سعر في market_prices`);
 
     // تحديث جدول market_symbols
-    const symbolsData = requestedCoins.map((coin) => ({
+    const symbolsData = requestedCoins.map(coin => ({
       symbol: `${coin.code}USDT`,
       name: coin.name || coin.code,
       market_cap: coin.cap || 0,
       logo_url: coin.png64 ? `data:image/png;base64,${coin.png64}` : null,
-      rank: allCoins.findIndex((c) => c.code === coin.code) + 1,
+      rank: allCoins.findIndex(c => c.code === coin.code) + 1,
       updated_at: new Date().toISOString(),
     }));
 
-    console.log("💾 تحديث جدول market_symbols...");
+    console.log('💾 تحديث جدول market_symbols...');
     const { error: symbolsError } = await supabase
-      .from("market_symbols")
+      .from('market_symbols')
       .upsert(symbolsData, {
-        onConflict: "symbol",
+        onConflict: 'symbol',
         ignoreDuplicates: false,
       });
 
     if (symbolsError) {
-      console.error("❌ خطأ في تحديث الرموز:", symbolsError);
+      console.error('❌ خطأ في تحديث الرموز:', symbolsError);
       throw symbolsError;
     }
 
     console.log(`✅ تم تحديث ${symbolsData.length} رمز في market_symbols`);
 
     // إنشاء شموع من بيانات الأسعار
-    console.log("💾 إنشاء الشموع من بيانات الأسعار...");
     const candlesData = [];
     const now = new Date();
-    const timeframes = ["1m", "5m", "15m", "1h", "4h", "1d"];
+    const timeframes = ['1m', '5m', '15m', '1h', '4h', '1d'];
     
     for (const coin of requestedCoins) {
       const symbol = `${coin.code}USDT`;
@@ -158,60 +157,54 @@ serve(async (req) => {
           close: price,
           volume: coin.volume || 0,
           timestamp: now.toISOString(),
-          source: "livecoinwatch",
+          source: 'livecoinwatch',
         });
       }
     }
 
-    console.log(`إجمالي الشموع المراد إدراجها: ${candlesData.length}`);
+    console.log('💾 تحديث جدول market_candles...');
+    const { error: candlesError } = await supabase
+      .from('market_candles')
+      .upsert(candlesData, {
+        onConflict: 'symbol,timeframe,timestamp',
+        ignoreDuplicates: false,
+      });
 
-    // إدراج الشموع في جدول market_candles
-    if (candlesData.length > 0) {
-      const { error: candlesError } = await supabase
-        .from("market_candles")
-        .upsert(candlesData, {
-          onConflict: "symbol,timeframe,timestamp",
-          ignoreDuplicates: false,
-        });
-
-      if (candlesError) {
-        console.error("❌ خطأ في إدراج الشموع:", candlesError);
-        throw candlesError;
-      }
-
-      console.log(`✅ تم إدراج ${candlesData.length} شمعة بنجاح`);
+    if (candlesError) {
+      console.error('❌ خطأ في تحديث الشموع:', candlesError);
+      throw candlesError;
     }
+
+    console.log(`✅ تم تحديث ${candlesData.length} شمعة في market_candles`);
 
     const summary = {
       success: true,
       timestamp: new Date().toISOString(),
       prices_updated: pricesData.length,
       symbols_updated: symbolsData.length,
-      candles_inserted: candlesData.length,
-      source: "livecoinwatch",
+      candles_updated: candlesData.length,
+      source: 'livecoinwatch',
     };
 
-    console.log("🎉 اكتمل التهيئة بنجاح:", summary);
+    console.log('🎉 اكتمل التحديث بنجاح:', summary);
 
-    return new Response(
-      JSON.stringify(summary),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify(summary), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
   } catch (error) {
-    console.error("❌ خطأ في initialize-market-data:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error('❌ خطأ في update-market-data:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const errorStack = error instanceof Error ? error.stack : undefined;
     
     return new Response(
-      JSON.stringify({
+      JSON.stringify({ 
         error: errorMessage,
         details: errorStack,
-      }),
+      }), 
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   }
