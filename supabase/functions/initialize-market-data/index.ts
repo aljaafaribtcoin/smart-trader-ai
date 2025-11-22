@@ -6,6 +6,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface LiveCoinWatchCoin {
+  code: string;
+  name: string;
+  rate: number;
+  volume: number;
+  cap: number;
+  delta: {
+    hour: number;
+    day: number;
+    week: number;
+    month: number;
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -18,63 +32,120 @@ serve(async (req) => {
 
     console.log("Starting market data initialization...");
 
+    const liveCoinWatchKey = Deno.env.get("LIVECOINWATCH_API_KEY")!;
+
     const results = {
       prices: 0,
       candles: 0,
-      indicators: 0,
       errors: [] as string[],
     };
 
-    // 1. Fetch prices from LiveCoinWatch
+    // 1. Fetch prices from LiveCoinWatch directly
     try {
-      const pricesResponse = await fetch(`${supabaseUrl}/functions/v1/fetch-livecoinwatch-prices`, {
+      console.log("Fetching prices from LiveCoinWatch...");
+      const symbols = ["BTC", "ETH", "BNB", "SOL", "XRP", "ADA", "AVAX", "DOT"];
+      
+      const response = await fetch("https://api.livecoinwatch.com/coins/list", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${supabaseServiceKey}`,
-          "Content-Type": "application/json",
+          "content-type": "application/json",
+          "x-api-key": liveCoinWatchKey,
         },
         body: JSON.stringify({
-          symbols: ["BTC", "ETH", "BNB", "SOL", "XRP", "ADA", "AVAX", "DOT"],
+          currency: "USD",
+          sort: "rank",
+          order: "ascending",
+          offset: 0,
+          limit: 100,
+          meta: true,
         }),
       });
 
-      if (pricesResponse.ok) {
-        const pricesData = await pricesResponse.json();
-        results.prices = pricesData.updated || 0;
-        console.log(`Fetched ${results.prices} prices`);
-      } else {
-        throw new Error(`Prices fetch failed: ${pricesResponse.statusText}`);
+      if (!response.ok) {
+        throw new Error(`LiveCoinWatch API error: ${response.statusText}`);
       }
+
+      const allCoins: LiveCoinWatchCoin[] = await response.json();
+      const filteredCoins = allCoins.filter((coin) => symbols.includes(coin.code));
+
+      const priceData = filteredCoins.map((coin) => ({
+        symbol: coin.code + "USDT",
+        price: coin.rate,
+        volume_24h: coin.volume,
+        change_24h: coin.delta.day,
+        change_7d: coin.delta.week,
+        change_30d: coin.delta.month,
+        market_cap: coin.cap,
+        source: "livecoinwatch",
+        last_updated: new Date().toISOString(),
+      }));
+
+      const { data: pricesInserted, error: pricesError } = await supabase
+        .from("market_prices")
+        .upsert(priceData, {
+          onConflict: "symbol,source",
+          ignoreDuplicates: false,
+        })
+        .select();
+
+      if (pricesError) throw pricesError;
+      results.prices = pricesInserted?.length || 0;
+      console.log(`Inserted ${results.prices} prices`);
     } catch (error) {
       const msg = `Prices error: ${error instanceof Error ? error.message : "Unknown"}`;
       console.error(msg);
       results.errors.push(msg);
     }
 
-    // 2. Fetch candles for main symbols
+    // 2. Fetch candles from Bybit directly
     const symbols = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
     const timeframes = ["5m", "15m", "1h", "4h"];
+    const intervalMap: Record<string, string> = {
+      "5m": "5",
+      "15m": "15",
+      "1h": "60",
+      "4h": "240",
+    };
 
     for (const symbol of symbols) {
       for (const timeframe of timeframes) {
         try {
-          const candlesResponse = await fetch(`${supabaseUrl}/functions/v1/fetch-bybit-candles`, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${supabaseServiceKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              symbol,
-              timeframe,
-              limit: 100,
-            }),
-          });
+          console.log(`Fetching candles for ${symbol} ${timeframe}...`);
+          const interval = intervalMap[timeframe];
+          const bybitUrl = `https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=${interval}&limit=100`;
 
-          if (candlesResponse.ok) {
-            const candlesData = await candlesResponse.json();
-            results.candles += candlesData.updated || 0;
+          const response = await fetch(bybitUrl);
+          if (!response.ok) {
+            throw new Error(`Bybit API error: ${response.statusText}`);
           }
+
+          const bybitData = await response.json();
+          if (bybitData.retCode !== 0) {
+            throw new Error(`Bybit API error: ${bybitData.retMsg}`);
+          }
+
+          const candleData = bybitData.result.list.map((candle: string[]) => ({
+            symbol: symbol,
+            timeframe: timeframe,
+            open: parseFloat(candle[1]),
+            high: parseFloat(candle[2]),
+            low: parseFloat(candle[3]),
+            close: parseFloat(candle[4]),
+            volume: parseFloat(candle[5]),
+            timestamp: new Date(parseInt(candle[0])).toISOString(),
+            source: "bybit",
+          }));
+
+          const { data: candlesInserted, error: candlesError } = await supabase
+            .from("market_candles")
+            .upsert(candleData, {
+              onConflict: "symbol,timeframe,timestamp,source",
+              ignoreDuplicates: false,
+            })
+            .select();
+
+          if (candlesError) throw candlesError;
+          results.candles += candlesInserted?.length || 0;
         } catch (error) {
           const msg = `Candles error for ${symbol} ${timeframe}: ${error instanceof Error ? error.message : "Unknown"}`;
           console.error(msg);
@@ -84,45 +155,13 @@ serve(async (req) => {
     }
 
     console.log(`Fetched ${results.candles} candles`);
-
-    // 3. Calculate indicators for main symbols and timeframes
-    for (const symbol of symbols) {
-      for (const timeframe of timeframes) {
-        try {
-          const indicatorsResponse = await fetch(`${supabaseUrl}/functions/v1/calculate-technical-indicators`, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${supabaseServiceKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              symbol,
-              timeframe,
-            }),
-          });
-
-          if (indicatorsResponse.ok) {
-            const indicatorsData = await indicatorsResponse.json();
-            if (indicatorsData.success) {
-              results.indicators++;
-            }
-          }
-        } catch (error) {
-          const msg = `Indicators error for ${symbol} ${timeframe}: ${error instanceof Error ? error.message : "Unknown"}`;
-          console.error(msg);
-          results.errors.push(msg);
-        }
-      }
-    }
-
-    console.log(`Calculated ${results.indicators} indicators`);
     console.log("Market data initialization complete");
 
     return new Response(
       JSON.stringify({
         success: true,
         results,
-        message: `تم تحميل ${results.prices} أسعار، ${results.candles} شموع، ${results.indicators} مؤشرات`,
+        message: `تم تحميل ${results.prices} أسعار و ${results.candles} شموع`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
