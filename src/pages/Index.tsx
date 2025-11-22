@@ -18,6 +18,10 @@ const TradesTable = lazy(() => import("@/components/TradesTable"));
 const PatternScanner = lazy(() => import("@/components/PatternScanner"));
 const AIChat = lazy(() => import("@/components/AIChat"));
 
+import { MultiTimeframePanel } from "@/components/MultiTimeframePanel";
+import { IndicatorsDashboard } from "@/components/IndicatorsDashboard";
+import { TimeframeMovementTracker } from "@/components/TimeframeMovementTracker";
+
 const Index = () => {
   const { isInitializing } = useMarketDataInitializer();
   
@@ -50,43 +54,41 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 grid grid-cols-12 gap-4">
           <AccountSidebar />
 
-          <section className="col-span-12 lg:col-span-7 flex flex-col gap-4">
-            <LiveUpdateIndicator />
-            <CurrencySelector />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Main Content - Left Column */}
+        <div className="lg:col-span-8 space-y-6">
+          <Suspense fallback={<LoadingSkeleton />}>
+            <ChartSection />
+          </Suspense>
 
-            <div className="grid grid-cols-12 gap-4">
-              <div className="col-span-12 xl:col-span-8 flex flex-col gap-3">
-                <Suspense fallback={<LoadingSkeleton type="chart" />}>
-                  <ChartSection />
-                </Suspense>
-                <Suspense fallback={<LoadingSkeleton type="card" />}>
-                  <MarketInsights />
-                </Suspense>
-              </div>
+          <Suspense fallback={<LoadingSkeleton />}>
+            <MarketInsights />
+          </Suspense>
 
-              <div className="col-span-12 xl:col-span-4 flex flex-col gap-3">
-                <Suspense fallback={<LoadingSkeleton type="card" />}>
-                  <TradeCard />
-                </Suspense>
-                <Suspense fallback={<LoadingSkeleton type="card" />}>
-                  <AIAnalysis />
-                </Suspense>
-              </div>
-            </div>
+          <Suspense fallback={<LoadingSkeleton />}>
+            <TradeCard />
+          </Suspense>
 
-            <Suspense fallback={<LoadingSkeleton type="table" count={5} />}>
-              <TradesTable />
-            </Suspense>
-          </section>
+          <Suspense fallback={<LoadingSkeleton />}>
+            <AIAnalysis />
+          </Suspense>
 
-          <aside className="col-span-12 lg:col-span-3 flex flex-col gap-3">
-            <Suspense fallback={<LoadingSkeleton type="card" />}>
-              <PatternScanner />
-            </Suspense>
-            <Suspense fallback={<LoadingSkeleton type="card" />}>
-              <AIChat />
-            </Suspense>
-          </aside>
+          <Suspense fallback={<LoadingSkeleton />}>
+            <TradesTable />
+          </Suspense>
+
+          <Suspense fallback={<LoadingSkeleton />}>
+            <PatternScanner />
+          </Suspense>
+        </div>
+
+        {/* Sidebar - Right Column */}
+        <div className="lg:col-span-4 space-y-6">
+          <Suspense fallback={<LoadingSkeleton />}>
+            <AIChat />
+          </Suspense>
+        </div>
+      </div>
         </div>
       </main>
     </div>
