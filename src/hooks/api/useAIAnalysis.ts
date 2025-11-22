@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AIAnalysis, AIConfluence } from '@/types';
 import { CACHE_TIMES } from '@/services/constants';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import type { AnalysisResult } from '@/lib/analysis/types';
 
 /**
  * Hook to fetch AI analysis for a symbol
@@ -13,9 +15,23 @@ export const useAIAnalysis = (
 ) => {
   return useQuery({
     queryKey: ['ai-analysis', symbol, timeframe],
-    queryFn: async (): Promise<AIAnalysis | null> => {
-      // Return null until AI analysis is implemented
-      return null;
+    queryFn: async (): Promise<AnalysisResult | null> => {
+      const { data: user } = await supabase.auth.getUser();
+      
+      const { data, error } = await supabase.functions.invoke('analyze-market', {
+        body: {
+          symbol,
+          timeframes: ['1d', '4h', '1h', '15m'],
+          userId: user?.user?.id
+        }
+      });
+
+      if (error) {
+        console.error('AI Analysis error:', error);
+        throw new Error(error.message || 'فشل في تحليل السوق');
+      }
+
+      return data?.data || null;
     },
     staleTime: CACHE_TIMES.MEDIUM,
     enabled,
@@ -32,35 +48,33 @@ export const useAnalyzeSymbol = () => {
     mutationFn: async ({
       symbol,
       timeframe,
-      analysisType = 'confluence',
     }: {
       symbol: string;
       timeframe: string;
-      analysisType?: string;
-    }): Promise<AIAnalysis | null> => {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+    }): Promise<AnalysisResult | null> => {
+      const { data: user } = await supabase.auth.getUser();
       
-      // Return null until AI analysis is implemented
-      return null;
+      const { data, error } = await supabase.functions.invoke('analyze-market', {
+        body: {
+          symbol,
+          timeframes: ['1d', '4h', '1h', '15m'],
+          userId: user?.user?.id
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'فشل في تحليل السوق');
+      }
+
+      return data?.data || null;
     },
     onSuccess: (data, variables) => {
-      if (data) {
-        queryClient.setQueryData(
-          ['ai-analysis', variables.symbol, variables.timeframe],
-          data
-        );
-        
-        toast({
-          title: 'تم التحليل',
-          description: `تم تحليل ${variables.symbol} بنجاح`,
-        });
-      } else {
-        toast({
-          title: 'قيد التطوير',
-          description: 'تحليل الذكاء الاصطناعي قيد التطوير',
-        });
-      }
+      queryClient.invalidateQueries({ queryKey: ['ai-analysis', variables.symbol] });
+      
+      toast({
+        title: 'تم التحليل',
+        description: `تم تحليل ${variables.symbol} بنجاح - الثقة: ${data?.confidence}%`,
+      });
     },
     onError: (error: Error) => {
       toast({
