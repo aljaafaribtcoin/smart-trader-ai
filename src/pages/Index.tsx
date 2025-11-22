@@ -1,13 +1,12 @@
 import { lazy, Suspense } from "react";
 import Header from "@/components/Header";
 import AccountSidebar from "@/components/AccountSidebar";
-import CurrencySelector from "@/components/CurrencySelector";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 import { useMarketDataInitializer } from "@/hooks/useMarketDataInitializer";
 import { useAutoRefreshMarketData } from "@/hooks/useAutoRefreshMarketData";
 import { useRealtimeMarketData } from "@/hooks/useRealtimeMarketData";
 import { useBybitCandlesRefresh } from "@/hooks/useBybitCandlesRefresh";
-import { LiveUpdateIndicator } from "@/components/LiveUpdateIndicator";
+import { useTradingStore } from "@/store/tradingStore";
 
 // Lazy load heavy components
 const ChartSection = lazy(() => import("@/components/ChartSection"));
@@ -24,6 +23,7 @@ import { TimeframeMovementTracker } from "@/components/TimeframeMovementTracker"
 
 const Index = () => {
   const { isInitializing } = useMarketDataInitializer();
+  const { selectedSymbol, selectedTimeframe } = useTradingStore();
   
   // تفعيل التحديثات التلقائية كل 30 ثانية من LiveCoinWatch
   useAutoRefreshMarketData();
@@ -51,44 +51,53 @@ const Index = () => {
       <Header />
 
       <main className="flex-1">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 grid grid-cols-12 gap-4">
-          <AccountSidebar />
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
+            {/* Account Sidebar - Hidden on mobile */}
+            <div className="hidden lg:block lg:col-span-2">
+              <AccountSidebar />
+            </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Main Content - Left Column */}
-        <div className="lg:col-span-8 space-y-6">
-          <Suspense fallback={<LoadingSkeleton />}>
-            <ChartSection />
-          </Suspense>
+            {/* Main Content Area */}
+            <div className="col-span-1 lg:col-span-7 space-y-4 sm:space-y-6">
+              <Suspense fallback={<LoadingSkeleton />}>
+                <ChartSection />
+              </Suspense>
 
-          <Suspense fallback={<LoadingSkeleton />}>
-            <MarketInsights />
-          </Suspense>
+              <MultiTimeframePanel symbol={selectedSymbol} />
 
-          <Suspense fallback={<LoadingSkeleton />}>
-            <TradeCard />
-          </Suspense>
+              <IndicatorsDashboard symbol={selectedSymbol} timeframe={selectedTimeframe} />
 
-          <Suspense fallback={<LoadingSkeleton />}>
-            <AIAnalysis />
-          </Suspense>
+              <Suspense fallback={<LoadingSkeleton />}>
+                <MarketInsights />
+              </Suspense>
 
-          <Suspense fallback={<LoadingSkeleton />}>
-            <TradesTable />
-          </Suspense>
+              <Suspense fallback={<LoadingSkeleton />}>
+                <AIAnalysis />
+              </Suspense>
 
-          <Suspense fallback={<LoadingSkeleton />}>
-            <PatternScanner />
-          </Suspense>
-        </div>
+              <Suspense fallback={<LoadingSkeleton />}>
+                <TradesTable />
+              </Suspense>
 
-        {/* Sidebar - Right Column */}
-        <div className="lg:col-span-4 space-y-6">
-          <Suspense fallback={<LoadingSkeleton />}>
-            <AIChat />
-          </Suspense>
-        </div>
-      </div>
+              <Suspense fallback={<LoadingSkeleton />}>
+                <PatternScanner />
+              </Suspense>
+            </div>
+
+            {/* Right Sidebar */}
+            <div className="col-span-1 lg:col-span-3 space-y-4 sm:space-y-6">
+              <TimeframeMovementTracker symbol={selectedSymbol} />
+
+              <Suspense fallback={<LoadingSkeleton />}>
+                <TradeCard />
+              </Suspense>
+
+              <Suspense fallback={<LoadingSkeleton />}>
+                <AIChat />
+              </Suspense>
+            </div>
+          </div>
         </div>
       </main>
     </div>
