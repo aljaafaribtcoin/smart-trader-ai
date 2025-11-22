@@ -2,6 +2,7 @@ import { Button } from "./ui/button";
 import { Notifications } from "./Notifications";
 import { ThemeToggle } from "./ThemeToggle";
 import { UserMenu } from "./UserMenu";
+import { NavLink } from "./NavLink";
 
 const Header = () => {
   return (
@@ -23,6 +24,24 @@ const Header = () => {
             </p>
           </div>
         </div>
+
+        {/* Navigation Links */}
+        <nav className="hidden md:flex items-center gap-2">
+          <NavLink 
+            to="/" 
+            className="px-3 py-1.5 rounded-lg text-sm transition-colors hover:bg-muted"
+            activeClassName="bg-primary text-primary-foreground hover:bg-primary"
+          >
+            🏠 الرئيسية
+          </NavLink>
+          <NavLink 
+            to="/charts"
+            className="px-3 py-1.5 rounded-lg text-sm transition-colors hover:bg-muted"
+            activeClassName="bg-primary text-primary-foreground hover:bg-primary"
+          >
+            📊 الرسوم البيانية
+          </NavLink>
+        </nav>
 
         <div className="flex items-center gap-3">
           <div className="hidden sm:flex items-center gap-2 text-xs">
