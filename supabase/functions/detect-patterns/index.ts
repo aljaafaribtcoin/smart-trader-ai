@@ -58,14 +58,44 @@ Deno.serve(async (req) => {
 
     // Save detected patterns to database
     if (detectedPatterns.length > 0) {
-      const { error: insertError } = await supabaseClient
+      const { data: insertedPatterns, error: insertError } = await supabaseClient
         .from('patterns')
-        .insert(detectedPatterns);
+        .insert(detectedPatterns)
+        .select();
 
       if (insertError) {
         console.error('[detect-patterns] Error saving patterns:', insertError);
       } else {
         console.log(`[detect-patterns] Saved ${detectedPatterns.length} patterns`);
+
+        // Create notifications for high-confidence patterns (>70%)
+        const highConfidencePatterns = insertedPatterns.filter(p => p.confidence >= 70);
+        
+        if (highConfidencePatterns.length > 0) {
+          const notifications = highConfidencePatterns.map(pattern => ({
+            user_id: pattern.user_id,
+            title: `🎯 نمط جديد: ${pattern.pattern_name}`,
+            message: `تم اكتشاف نمط ${pattern.pattern_name} على ${pattern.symbol} (${pattern.timeframe}) بثقة ${pattern.confidence}%`,
+            type: 'pattern',
+            metadata: {
+              pattern_id: pattern.id,
+              symbol: pattern.symbol,
+              confidence: pattern.confidence,
+              target_price: pattern.target_price,
+            },
+            action_url: `/patterns`,
+          }));
+
+          const { error: notifError } = await supabaseClient
+            .from('notifications')
+            .insert(notifications);
+
+          if (notifError) {
+            console.error('[detect-patterns] Error creating notifications:', notifError);
+          } else {
+            console.log(`[detect-patterns] Created ${notifications.length} notifications`);
+          }
+        }
       }
     }
 
