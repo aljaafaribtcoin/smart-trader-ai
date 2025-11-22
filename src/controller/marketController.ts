@@ -7,42 +7,54 @@ import { getCandles } from '@/data/marketDataService';
 export async function loadAllTimeframesForSymbol(
   symbol: string,
   timeframes: Timeframe[] = ['1D', '4H', '1H', '15m', '5m', '3m']
-): Promise<Record<Timeframe, MarketSnapshot>> {
+): Promise<Record<Timeframe, MarketSnapshot | null>> {
   console.log(`[MarketController] Loading all timeframes for ${symbol}:`, timeframes);
 
   try {
     // Fetch all timeframes in parallel for maximum efficiency
     const promises = timeframes.map(timeframe =>
       getCandles({ symbol, timeframe, useCache: true })
-        .then(snapshot => ({ timeframe, snapshot }))
+        .then(snapshot => ({ timeframe, snapshot, error: null }))
         .catch(error => {
-          console.error(`[MarketController] Failed to load ${timeframe}:`, error);
-          return { timeframe, snapshot: null };
+          console.error(`[MarketController] Failed to load ${timeframe}:`, {
+            error: error.message,
+            symbol,
+            timeframe,
+            timestamp: new Date().toISOString()
+          });
+          return { timeframe, snapshot: null, error: error.message };
         })
     );
 
     const results = await Promise.all(promises);
 
     // Build result object
-    const snapshots: Record<string, MarketSnapshot> = {};
+    const snapshots: Record<string, MarketSnapshot | null> = {};
     let successCount = 0;
+    const failures: Array<{ timeframe: Timeframe; error: string }> = [];
 
-    for (const { timeframe, snapshot } of results) {
+    for (const { timeframe, snapshot, error } of results) {
+      snapshots[timeframe] = snapshot;
       if (snapshot) {
-        snapshots[timeframe] = snapshot;
         successCount++;
+      } else {
+        failures.push({ timeframe, error: error || 'Unknown error' });
       }
     }
 
     console.log(
-      `[MarketController] Loaded ${successCount}/${timeframes.length} timeframes for ${symbol}`
+      `[MarketController] Loaded ${successCount}/${timeframes.length} timeframes for ${symbol}`,
+      failures.length > 0 ? { failures } : ''
     );
 
+    // Only throw if ALL timeframes failed
     if (successCount === 0) {
-      throw new Error(`Failed to load any timeframes for ${symbol}`);
+      throw new Error(
+        `Failed to load all timeframes for ${symbol}. Failures: ${JSON.stringify(failures)}`
+      );
     }
 
-    return snapshots as Record<Timeframe, MarketSnapshot>;
+    return snapshots as Record<Timeframe, MarketSnapshot | null>;
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error(`[MarketController] Error loading timeframes:`, message);

@@ -6,6 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { LoadingSkeleton } from './common/LoadingSkeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { ErrorState } from './common/ErrorState';
+import { errorLogger } from '@/lib/errorLogger';
 
 interface Indicator {
   name: string;
@@ -25,6 +27,8 @@ interface IndicatorsDashboardProps {
 export const IndicatorsDashboard = ({ symbol, timeframe }: IndicatorsDashboardProps) => {
   const [indicators, setIndicators] = useState<Indicator[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [partialData, setPartialData] = useState(false);
 
   const evaluateRSI = (rsi: number): { status: 'bullish' | 'bearish' | 'neutral'; label: string } => {
     if (rsi > 70) return { status: 'bearish', label: 'تشبع شرائي ⚠️' };
@@ -64,6 +68,8 @@ export const IndicatorsDashboard = ({ symbol, timeframe }: IndicatorsDashboardPr
   const loadIndicators = async () => {
     try {
       setIsLoading(true);
+      setError(null);
+      setPartialData(false);
 
       // Fetch technical indicators
       const { data: techData, error: techError } = await supabase
@@ -87,6 +93,12 @@ export const IndicatorsDashboard = ({ symbol, timeframe }: IndicatorsDashboardPr
         .maybeSingle();
 
       if (priceError) throw priceError;
+
+      if (!techData) {
+        setError('لا توجد بيانات مؤشرات متاحة لهذا الرمز والفريم');
+        setPartialData(true);
+        return;
+      }
 
       const indicatorsList: Indicator[] = [];
       const now = new Date();
@@ -217,7 +229,15 @@ export const IndicatorsDashboard = ({ symbol, timeframe }: IndicatorsDashboardPr
 
       setIndicators(indicatorsList);
     } catch (error) {
-      console.error('Failed to load indicators:', error);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      setError(`فشل تحميل المؤشرات: ${message}`);
+      
+      errorLogger.log({
+        type: 'api',
+        component: 'IndicatorsDashboard',
+        message: 'Failed to load indicators',
+        details: { symbol, timeframe, error: message }
+      });
     } finally {
       setIsLoading(false);
     }
@@ -261,6 +281,18 @@ export const IndicatorsDashboard = ({ symbol, timeframe }: IndicatorsDashboardPr
 
   if (isLoading) {
     return <LoadingSkeleton />;
+  }
+
+  if (error) {
+    return (
+      <Card className="p-6">
+        <ErrorState
+          type={partialData ? 'data' : 'api'}
+          message={error}
+          onRetry={loadIndicators}
+        />
+      </Card>
+    );
   }
 
   const renderIndicatorSection = (title: string, icon: React.ReactNode, items: Indicator[]) => {

@@ -37,6 +37,27 @@ function transformToStandardCandles(data: any[]): Candle[] {
 }
 
 /**
+ * Retry function with exponential backoff
+ */
+async function fetchWithRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries = 3,
+  baseDelay = 1000
+): Promise<T> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (i === maxRetries - 1) throw error;
+      const delay = baseDelay * Math.pow(2, i);
+      console.log(`Retry attempt ${i + 1}/${maxRetries} after ${delay}ms`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error('All retry attempts failed');
+}
+
+/**
  * Fetch candles from Bybit via Edge Function
  */
 export async function fetchBybitCandles(
@@ -45,25 +66,45 @@ export async function fetchBybitCandles(
   try {
     const bybitTimeframe = mapTimeframeToBybit(params.timeframe);
     
-    const { data, error } = await supabase.functions.invoke('fetch-bybit-candles', {
-      body: {
-        symbol: params.symbol,
-        timeframe: bybitTimeframe,
-        limit: params.limit || 500,
-      },
+    const result = await fetchWithRetry(async () => {
+      const { data, error } = await supabase.functions.invoke('fetch-bybit-candles', {
+        body: {
+          symbol: params.symbol,
+          timeframe: bybitTimeframe,
+          limit: params.limit || 500,
+        },
+      });
+
+      if (error) {
+        throw new Error(`Bybit edge function error: ${error.message}`);
+      }
+
+      // Check if the response was successful
+      if (!data?.success) {
+        throw new Error(data?.error || 'Edge function returned unsuccessful response');
+      }
+
+      // Verify candles exist in response
+      if (!data?.candles || !Array.isArray(data.candles)) {
+        throw new Error('No candles data returned from edge function');
+      }
+
+      return data;
     });
 
-    if (error) {
-      throw new Error(`Bybit adapter error: ${error.message}`);
+    const candles = transformToStandardCandles(result.candles);
+    
+    if (candles.length === 0) {
+      throw new Error('No candles after transformation');
     }
 
-    if (!data?.candles) {
-      throw new Error('Bybit: Invalid response format');
-    }
-
-    return transformToStandardCandles(data.candles);
+    console.log(`[BybitAdapter] Successfully fetched ${candles.length} candles for ${params.symbol} ${params.timeframe}`);
+    return candles;
+    
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    throw new Error(`Failed to fetch Bybit candles: ${message}`);
+    const detailedError = `Failed to fetch Bybit candles: ${message} (Symbol: ${params.symbol}, Timeframe: ${params.timeframe})`;
+    console.error(`[BybitAdapter] ${detailedError}`);
+    throw new Error(detailedError);
   }
 }
