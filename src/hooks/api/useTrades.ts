@@ -97,13 +97,33 @@ export const useExecuteTrade = () => {
 
       return trade;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['trades'] });
       
       toast({
         title: 'تم تنفيذ الصفقة',
         description: `تم فتح صفقة ${data.type === 'long' ? 'شراء' : 'بيع'} على ${data.symbol} عند ${data.entry_price}`,
       });
+
+      // Create notification for trade execution
+      try {
+        await supabase.from('notifications').insert({
+          user_id: data.user_id,
+          title: `✅ تم تنفيذ صفقة ${data.type === 'long' ? 'شراء' : 'بيع'}`,
+          message: `تم فتح صفقة ${data.type} على ${data.symbol} بسعر ${data.entry_price}`,
+          type: 'trade',
+          metadata: {
+            trade_id: data.id,
+            symbol: data.symbol,
+            type: data.type,
+            entry_price: data.entry_price,
+            position_size: data.position_size,
+          },
+          action_url: `/trades`,
+        });
+      } catch (error) {
+        console.error('Error creating trade notification:', error);
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -138,13 +158,36 @@ export const useCloseTrade = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['trades'] });
+      
+      const profitLoss = data.pnl || 0;
+      const isProfit = profitLoss > 0;
       
       toast({
         title: 'تم إغلاق الصفقة',
-        description: 'تم إغلاق الصفقة بنجاح',
+        description: `${isProfit ? 'ربح' : 'خسارة'}: ${Math.abs(profitLoss).toFixed(2)} USDT (${data.pnl_percentage?.toFixed(2)}%)`,
+        variant: isProfit ? 'default' : 'destructive',
       });
+
+      // Create notification for trade closure
+      try {
+        await supabase.from('notifications').insert({
+          user_id: data.user_id,
+          title: `${isProfit ? '💰' : '📉'} إغلاق صفقة ${data.symbol}`,
+          message: `تم إغلاق صفقة ${data.type} على ${data.symbol} ${isProfit ? 'بربح' : 'بخسارة'} ${Math.abs(profitLoss).toFixed(2)} USDT (${data.pnl_percentage?.toFixed(2)}%)`,
+          type: isProfit ? 'success' : 'warning',
+          metadata: {
+            trade_id: data.id,
+            symbol: data.symbol,
+            pnl: profitLoss,
+            pnl_percentage: data.pnl_percentage,
+          },
+          action_url: `/trades`,
+        });
+      } catch (error) {
+        console.error('Error creating close trade notification:', error);
+      }
     },
     onError: (error: Error) => {
       toast({
