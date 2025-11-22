@@ -3,6 +3,7 @@ import { Notifications } from "./Notifications";
 import { ThemeToggle } from "./ThemeToggle";
 import UserMenu from "./UserMenu";
 import { NavLink } from "./NavLink";
+import { SymbolsDropdown } from "./SymbolsDropdown";
 
 const Header = () => {
   return (
@@ -44,11 +45,13 @@ const Header = () => {
         </nav>
 
         <div className="flex items-center gap-3">
+          <SymbolsDropdown />
+          
           <div className="hidden sm:flex items-center gap-2 text-xs">
             <span className="text-muted-foreground">مصدر البيانات</span>
             <Button variant="outline" size="sm" className="h-auto px-2.5 py-1 text-xs">
               <span className="w-2 h-2 rounded-full bg-success animate-pulse ml-1"></span>
-              Bybit & LiveCoinWatch
+              3 Sources Active
             </Button>
           </div>
 

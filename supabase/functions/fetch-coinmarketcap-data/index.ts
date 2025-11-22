@@ -66,8 +66,14 @@ Deno.serve(async (req) => {
     const cmcData: CMCResponse = await response.json();
     console.log(`Fetched ${cmcData.data.length} cryptocurrencies from CoinMarketCap`);
 
+    // Filter for only the 7 target symbols
+    const targetSymbols = ['BTC', 'ETH', 'CAKE', 'AVAX', 'SUI', 'SEI', 'PEPE'];
+    const filteredData = cmcData.data.filter(crypto => targetSymbols.includes(crypto.symbol));
+    
+    console.log(`Filtered to ${filteredData.length} target cryptocurrencies`);
+
     // Transform data for market_symbols table
-    const symbolData = cmcData.data.map(crypto => ({
+    const symbolData = filteredData.map(crypto => ({
       symbol: crypto.symbol + 'USDT',
       name: crypto.name,
       description: `${crypto.name} (${crypto.symbol}) - Rank #${crypto.cmc_rank}`,
@@ -97,7 +103,7 @@ Deno.serve(async (req) => {
     console.log(`Successfully updated ${symbolsData?.length || 0} symbols`);
 
     // Also update market_prices with CMC data
-    const priceData = cmcData.data.map(crypto => ({
+    const priceData = filteredData.map(crypto => ({
       symbol: crypto.symbol + 'USDT',
       price: crypto.quote.USD.price,
       volume_24h: crypto.quote.USD.volume_24h,

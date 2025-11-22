@@ -39,8 +39,8 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // العملات المطلوبة
-    const symbols = ["BTC", "ETH", "BNB", "SOL", "XRP", "ADA", "AVAX", "DOT"];
+    // العملات المطلوبة (7 عملات محددة فقط)
+    const symbols = ["BTC", "ETH", "CAKE", "AVAX", "SUI", "SEI", "PEPE"];
     
     console.log(`📊 جلب بيانات ${symbols.length} عملة من LiveCoinWatch...`);
 
@@ -132,62 +132,16 @@ serve(async (req) => {
 
     console.log(`✅ تم تحديث ${symbolsData.length} رمز في market_symbols`);
 
-    // إنشاء شموع من بيانات الأسعار
-    console.log("💾 إنشاء الشموع من بيانات الأسعار...");
-    const candlesData = [];
-    const now = new Date();
-    const timeframes = ["1m", "5m", "15m", "1h", "4h", "1d"];
-    
-    for (const coin of requestedCoins) {
-      const symbol = `${coin.code}USDT`;
-      const price = coin.rate || 0;
-      const change = (coin.delta?.day || 0) / 100;
-      
-      // حساب الأسعار التقريبية
-      const open = price / (1 + change);
-      const high = Math.max(price, open) * 1.001;
-      const low = Math.min(price, open) * 0.999;
-      
-      for (const timeframe of timeframes) {
-        candlesData.push({
-          symbol,
-          timeframe,
-          open,
-          high,
-          low,
-          close: price,
-          volume: coin.volume || 0,
-          timestamp: now.toISOString(),
-          source: "livecoinwatch",
-        });
-      }
-    }
-
-    console.log(`إجمالي الشموع المراد إدراجها: ${candlesData.length}`);
-
-    // إدراج الشموع في جدول market_candles
-    if (candlesData.length > 0) {
-      const { error: candlesError } = await supabase
-        .from("market_candles")
-        .upsert(candlesData, {
-          onConflict: "symbol,timeframe,timestamp",
-          ignoreDuplicates: false,
-        });
-
-      if (candlesError) {
-        console.error("❌ خطأ في إدراج الشموع:", candlesError);
-        throw candlesError;
-      }
-
-      console.log(`✅ تم إدراج ${candlesData.length} شمعة بنجاح`);
-    }
+    // ملاحظة: لم نعد ننشئ شموع وهمية من LiveCoinWatch
+    // سيتم جلب الشموع الحقيقية من Bybit عبر fetch-bybit-candles
+    console.log("ℹ️ تم تخطي إنشاء الشموع - سيتم جلبها من Bybit");
 
     const summary = {
       success: true,
       timestamp: new Date().toISOString(),
       prices_updated: pricesData.length,
       symbols_updated: symbolsData.length,
-      candles_inserted: candlesData.length,
+      candles_inserted: 0, // Bybit will handle candles
       source: "livecoinwatch",
     };
 

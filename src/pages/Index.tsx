@@ -6,6 +6,8 @@ import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 import { useMarketDataInitializer } from "@/hooks/useMarketDataInitializer";
 import { useAutoRefreshMarketData } from "@/hooks/useAutoRefreshMarketData";
 import { useRealtimeMarketData } from "@/hooks/useRealtimeMarketData";
+import { useBybitCandlesRefresh } from "@/hooks/useBybitCandlesRefresh";
+import { LiveUpdateIndicator } from "@/components/LiveUpdateIndicator";
 
 // Lazy load heavy components
 const ChartSection = lazy(() => import("@/components/ChartSection"));
@@ -19,11 +21,14 @@ const AIChat = lazy(() => import("@/components/AIChat"));
 const Index = () => {
   const { isInitializing } = useMarketDataInitializer();
   
-  // تفعيل التحديثات التلقائية كل 30 ثانية
+  // تفعيل التحديثات التلقائية كل 30 ثانية من LiveCoinWatch
   useAutoRefreshMarketData();
   
   // تفعيل التحديثات الفورية عبر Realtime
   useRealtimeMarketData();
+  
+  // تفعيل تحديثات شموع Bybit حسب الإطار الزمني
+  useBybitCandlesRefresh();
 
   if (isInitializing) {
     return (
@@ -46,6 +51,7 @@ const Index = () => {
           <AccountSidebar />
 
           <section className="col-span-12 lg:col-span-7 flex flex-col gap-4">
+            <LiveUpdateIndicator />
             <CurrencySelector />
 
             <div className="grid grid-cols-12 gap-4">
