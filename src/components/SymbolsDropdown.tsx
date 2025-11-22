@@ -14,7 +14,7 @@ import { ChevronDown } from "lucide-react";
 export const SymbolsDropdown = () => {
   const { selectedSymbol, setSymbol } = useTradingStore();
 
-  // العملات السبعة المحددة فقط
+  // العملات السبعة المحددة فقط - مع ملاحظة أن PEPE في Bybit هو 1000PEPEUSDT
   const availableSymbols = [
     { symbol: "BTCUSDT", name: "Bitcoin", icon: "₿" },
     { symbol: "ETHUSDT", name: "Ethereum", icon: "Ξ" },
@@ -22,7 +22,7 @@ export const SymbolsDropdown = () => {
     { symbol: "AVAXUSDT", name: "Avalanche", icon: "🔺" },
     { symbol: "SUIUSDT", name: "Sui", icon: "💧" },
     { symbol: "SEIUSDT", name: "Sei", icon: "⚡" },
-    { symbol: "PEPEUSDT", name: "Pepe", icon: "🐸" },
+    { symbol: "1000PEPEUSDT", name: "Pepe", icon: "🐸" },
   ];
 
   const currentSymbol = availableSymbols.find(s => s.symbol === selectedSymbol);
@@ -37,7 +37,7 @@ export const SymbolsDropdown = () => {
           <span className="text-base">{currentSymbol?.icon}</span>
           <div className="text-right">
             <p className="text-sm font-semibold leading-none">
-              {currentSymbol?.symbol.replace('USDT', '')}
+              {currentSymbol?.symbol.replace('1000PEPEUSDT', 'PEPE').replace('USDT', '')}
             </p>
             <p className="text-[10px] text-muted-foreground">
               {currentSymbol?.name}
@@ -57,7 +57,9 @@ export const SymbolsDropdown = () => {
           >
             <span className="text-lg">{item.icon}</span>
             <div className="flex-1">
-              <p className="text-sm font-medium">{item.symbol.replace('USDT', '')}</p>
+              <p className="text-sm font-medium">
+                {item.symbol.replace('1000PEPEUSDT', 'PEPE').replace('USDT', '')}
+              </p>
               <p className="text-[10px] text-muted-foreground">{item.name}</p>
             </div>
             {item.symbol === selectedSymbol && (

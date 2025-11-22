@@ -39,8 +39,8 @@ Deno.serve(async (req) => {
     // Get parameters from request or use defaults
     const requestBody = await req.json().catch(() => ({}));
     
-    // Define the 7 target symbols
-    const targetSymbols = ['BTCUSDT', 'ETHUSDT', 'CAKEUSDT', 'AVAXUSDT', 'SUIUSDT', 'SEIUSDT', 'PEPEUSDT'];
+    // Define the 7 target symbols - PEPE in Bybit is 1000PEPEUSDT
+    const targetSymbols = ['BTCUSDT', 'ETHUSDT', 'CAKEUSDT', 'AVAXUSDT', 'SUIUSDT', 'SEIUSDT', '1000PEPEUSDT'];
     
     // Get symbol from request or process all
     const symbols = requestBody.symbol ? [requestBody.symbol] : targetSymbols;
