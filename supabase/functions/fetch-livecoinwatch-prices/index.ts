@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
 
     // Get symbols from request or use defaults
     const { symbols } = await req.json().catch(() => ({ 
-      symbols: ['BTC', 'ETH', 'AVAX', 'SEI', 'SOL', 'BNB'] 
+      symbols: ['BTC', 'ETH', 'BNB', 'AVAX', 'CAKE', 'SUI', 'SEI', 'PEPE'] 
     }));
 
     console.log('Fetching prices for symbols:', symbols);
