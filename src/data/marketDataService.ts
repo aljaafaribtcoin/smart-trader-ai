@@ -9,8 +9,6 @@ import {
 import {
   fetchBinanceCandles,
   fetchBybitCandles,
-  fetchLcwCandles,
-  fetchCmcCandles,
 } from './adapters';
 import {
   getMarketSnapshot,
@@ -20,22 +18,21 @@ import {
 
 /**
  * Fallback order for data sources
+ * Only includes sources that support historical candle data
+ * CoinMarketCap and LiveCoinWatch don't provide free historical candles
  */
 const SOURCE_FALLBACK_ORDER: DataSource[] = [
   'binance',
   'bybit',
-  'livecoinwatch',
-  'coinmarketcap',
 ];
 
 /**
  * Map data source to adapter function
+ * Partial mapping - only sources that support candle data
  */
-const SOURCE_ADAPTERS: Record<DataSource, (params: any) => Promise<Candle[]>> = {
+const SOURCE_ADAPTERS: Partial<Record<DataSource, (params: any) => Promise<Candle[]>>> = {
   binance: fetchBinanceCandles,
   bybit: fetchBybitCandles,
-  livecoinwatch: fetchLcwCandles,
-  coinmarketcap: fetchCmcCandles,
 };
 
 /**
