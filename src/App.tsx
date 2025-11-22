@@ -9,6 +9,7 @@ import Charts from "./pages/Charts";
 import Trades from "./pages/Trades";
 import Patterns from "./pages/Patterns";
 import Dashboard from "./pages/Dashboard";
+import Signals from "./pages/Signals";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { useAuth } from "./hooks/useAuth";
@@ -90,6 +91,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/signals"
+              element={
+                <ProtectedRoute>
+                  <Signals />
                 </ProtectedRoute>
               }
             />

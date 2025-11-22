@@ -43,6 +43,13 @@ const Header = () => {
             📊 الإحصائيات
           </NavLink>
           <NavLink 
+            to="/signals"
+            className="px-3 py-1.5 rounded-lg text-sm transition-colors hover:bg-muted"
+            activeClassName="bg-primary text-primary-foreground hover:bg-primary"
+          >
+            🎯 التوصيات
+          </NavLink>
+          <NavLink 
             to="/charts"
             className="px-3 py-1.5 rounded-lg text-sm transition-colors hover:bg-muted"
             activeClassName="bg-primary text-primary-foreground hover:bg-primary"
