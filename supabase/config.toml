@@ -17,3 +17,6 @@ verify_jwt = true
 
 [functions.initialize-market-data]
 verify_jwt = false
+
+[functions.update-market-data]
+verify_jwt = false

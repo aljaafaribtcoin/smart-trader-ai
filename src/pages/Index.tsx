@@ -4,6 +4,8 @@ import AccountSidebar from "@/components/AccountSidebar";
 import CurrencySelector from "@/components/CurrencySelector";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 import { useMarketDataInitializer } from "@/hooks/useMarketDataInitializer";
+import { useAutoRefreshMarketData } from "@/hooks/useAutoRefreshMarketData";
+import { useRealtimeMarketData } from "@/hooks/useRealtimeMarketData";
 
 // Lazy load heavy components
 const ChartSection = lazy(() => import("@/components/ChartSection"));
@@ -16,6 +18,12 @@ const AIChat = lazy(() => import("@/components/AIChat"));
 
 const Index = () => {
   const { isInitializing } = useMarketDataInitializer();
+  
+  // تفعيل التحديثات التلقائية كل 30 ثانية
+  useAutoRefreshMarketData();
+  
+  // تفعيل التحديثات الفورية عبر Realtime
+  useRealtimeMarketData();
 
   if (isInitializing) {
     return (
