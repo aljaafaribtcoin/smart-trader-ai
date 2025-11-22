@@ -1,17 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { WatchlistItem } from '@/types';
-import { CACHE_KEYS, CACHE_TIMES } from '@/services/constants';
-import { toast } from '@/hooks/use-toast';
+import { CACHE_TIMES } from '@/services/constants';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '../useAuth';
 
 /**
  * Hook to fetch watchlist from Supabase
  */
-export const useWatchlist = (userId: string, enabled: boolean = true) => {
+export const useWatchlist = () => {
+  const { user } = useAuth();
+  
   return useQuery({
-    queryKey: [CACHE_KEYS.WATCHLIST, userId],
+    queryKey: ['watchlist', user?.id],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
       const { data, error } = await supabase
@@ -24,7 +25,7 @@ export const useWatchlist = (userId: string, enabled: boolean = true) => {
       return data || [];
     },
     staleTime: CACHE_TIMES.MEDIUM,
-    enabled,
+    enabled: !!user,
   });
 };
 
@@ -33,18 +34,17 @@ export const useWatchlist = (userId: string, enabled: boolean = true) => {
  */
 export const useAddToWatchlist = () => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({
-      userId,
       symbol,
       timeframe,
     }: {
-      userId: string;
       symbol: string;
       timeframe: string;
     }) => {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
       const { data, error } = await supabase
@@ -61,7 +61,7 @@ export const useAddToWatchlist = () => {
       return data;
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [CACHE_KEYS.WATCHLIST] });
+      queryClient.invalidateQueries({ queryKey: ['watchlist'] });
       
       toast({
         title: 'تمت الإضافة',
@@ -83,6 +83,7 @@ export const useAddToWatchlist = () => {
  */
 export const useRemoveFromWatchlist = () => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (watchlistId: string) => {
@@ -94,7 +95,7 @@ export const useRemoveFromWatchlist = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CACHE_KEYS.WATCHLIST] });
+      queryClient.invalidateQueries({ queryKey: ['watchlist'] });
       
       toast({
         title: 'تم الحذف',

@@ -8,7 +8,7 @@ import { TrendingUp } from "lucide-react";
 
 const PatternScanner = () => {
   const { selectedSymbol } = useTradingStore();
-  const { data: patterns, isLoading, error } = usePatterns(selectedSymbol);
+  const { data: patterns = [], isLoading, error } = usePatterns(selectedSymbol);
 
   return (
     <Card className="p-3 flex flex-col gap-2 text-[11px] shadow-soft">

@@ -1,4 +1,5 @@
-import { User, Settings, LogOut, CreditCard, HelpCircle } from 'lucide-react';
+import { User, Settings, LogOut } from "lucide-react";
+import { Button } from "./ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -6,37 +7,56 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from './ui/dropdown-menu';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
+} from "./ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "./ui/avatar";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
-export const UserMenu = () => {
+const UserMenu = () => {
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "تم تسجيل الخروج",
+        description: "تم تسجيل خروجك بنجاح",
+      });
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء تسجيل الخروج",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getInitials = (name?: string) => {
+    if (!name) return "U";
+    return name.charAt(0).toUpperCase();
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="flex items-center gap-2 h-auto p-0 hover:bg-transparent"
-        >
-          <div className="text-right text-xs hidden sm:block">
-            <div className="font-semibold">حساب المتداول</div>
-            <div className="text-[10px] text-muted-foreground flex items-center gap-1 justify-end">
-              خطة: <Badge variant="secondary" className="text-[9px] px-1.5 py-0">Pro</Badge>
-            </div>
-          </div>
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-xs font-bold transition-transform hover:scale-105">
-            K
-          </div>
+        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-primary-foreground">
+              {getInitials(user?.user_metadata?.full_name)}
+            </AvatarFallback>
+          </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end">
-        <DropdownMenuLabel className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-xs font-bold">
-            K
-          </div>
-          <div>
-            <div className="font-semibold text-sm">حساب المتداول</div>
-            <div className="text-xs text-muted-foreground">trader@example.com</div>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col space-y-1">
+            <p className="text-sm font-medium leading-none">
+              {user?.user_metadata?.full_name || "مستخدم"}
+            </p>
+            <p className="text-xs leading-none text-muted-foreground">
+              {user?.email}
+            </p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -48,16 +68,11 @@ export const UserMenu = () => {
           <Settings className="ml-2 h-4 w-4" />
           <span>الإعدادات</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className="cursor-pointer">
-          <CreditCard className="ml-2 h-4 w-4" />
-          <span>الاشتراك والدفع</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem className="cursor-pointer">
-          <HelpCircle className="ml-2 h-4 w-4" />
-          <span>المساعدة والدعم</span>
-        </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
+        <DropdownMenuItem 
+          className="text-destructive cursor-pointer"
+          onClick={handleSignOut}
+        >
           <LogOut className="ml-2 h-4 w-4" />
           <span>تسجيل الخروج</span>
         </DropdownMenuItem>
@@ -65,3 +80,5 @@ export const UserMenu = () => {
     </DropdownMenu>
   );
 };
+
+export default UserMenu;

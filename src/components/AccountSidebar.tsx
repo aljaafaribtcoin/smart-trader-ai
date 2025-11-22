@@ -3,17 +3,15 @@ import { useToast } from "@/hooks/use-toast";
 import { useAccount } from "@/hooks/api/useAccount";
 import { useWatchlist } from "@/hooks/api/useWatchlist";
 import { useTradingStore } from "@/store/tradingStore";
-import { useUserStore } from "@/store/userStore";
 import { LoadingSkeleton } from "./common/LoadingSkeleton";
 import { ErrorMessage } from "./common/ErrorMessage";
 
 const AccountSidebar = () => {
   const { toast } = useToast();
-  const { userId } = useUserStore();
   const { selectedSymbol, setSymbol } = useTradingStore();
   
-  const { data: account, isLoading: accountLoading, error: accountError } = useAccount(userId);
-  const { data: watchlist, isLoading: watchlistLoading, error: watchlistError } = useWatchlist(userId);
+  const { data: account, isLoading: accountLoading, error: accountError } = useAccount();
+  const { data: watchlist, isLoading: watchlistLoading, error: watchlistError } = useWatchlist();
 
   const handleSymbolClick = (symbol: string, timeframe: string) => {
     setSymbol(symbol);

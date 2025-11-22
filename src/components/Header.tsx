@@ -1,7 +1,7 @@
 import { Button } from "./ui/button";
 import { Notifications } from "./Notifications";
 import { ThemeToggle } from "./ThemeToggle";
-import { UserMenu } from "./UserMenu";
+import UserMenu from "./UserMenu";
 import { NavLink } from "./NavLink";
 
 const Header = () => {

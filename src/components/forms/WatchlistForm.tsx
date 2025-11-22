@@ -67,7 +67,6 @@ export const WatchlistForm = ({ onSuccess, onCancel }: WatchlistFormProps) => {
   const onSubmit = (data: WatchlistFormData) => {
     addToWatchlist(
       {
-        userId,
         symbol: data.symbol,
         timeframe: data.timeframe,
       },

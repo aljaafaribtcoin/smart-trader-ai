@@ -1,21 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Trade, TradeExecution } from '@/types';
-import { CACHE_KEYS, CACHE_TIMES } from '@/services/constants';
-import { toast } from '@/hooks/use-toast';
+import { CACHE_TIMES } from '@/services/constants';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '../useAuth';
 
 /**
- * Hook to fetch all trades from Supabase
+ * Hook to fetch trades from Supabase
  */
-export const useTrades = (
-  userId: string,
-  status?: 'open' | 'closed',
-  enabled: boolean = true
-) => {
+export const useTrades = (status?: 'open' | 'closed') => {
+  const { user } = useAuth();
+  
   return useQuery({
-    queryKey: [CACHE_KEYS.TRADES, userId, status],
+    queryKey: ['trades', user?.id, status],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
       let query = supabase
@@ -33,22 +30,8 @@ export const useTrades = (
       return data || [];
     },
     staleTime: CACHE_TIMES.SHORT,
-    enabled,
+    enabled: !!user,
   });
-};
-
-/**
- * Hook to fetch open trades
- */
-export const useOpenTrades = (userId: string) => {
-  return useTrades(userId, 'open', true);
-};
-
-/**
- * Hook to fetch closed trades
- */
-export const useClosedTrades = (userId: string) => {
-  return useTrades(userId, 'closed', true);
 };
 
 /**
@@ -56,10 +39,11 @@ export const useClosedTrades = (userId: string) => {
  */
 export const useExecuteTrade = () => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (tradeData: Partial<Trade>) => {
-      const { data: { user } } = await supabase.auth.getUser();
+    mutationFn: async (tradeData: any) => {
       if (!user) throw new Error('User not authenticated');
 
       const { data, error } = await supabase
@@ -77,22 +61,14 @@ export const useExecuteTrade = () => {
         .single();
 
       if (error) throw error;
-
-      return {
-        tradeId: data.id,
-        executionPrice: data.entry_price,
-        executionTime: new Date(data.entry_time),
-        slippage: 0.02,
-        fees: data.fees,
-        success: true,
-      } as TradeExecution;
+      return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: [CACHE_KEYS.TRADES] });
+      queryClient.invalidateQueries({ queryKey: ['trades'] });
       
       toast({
         title: 'تم تنفيذ الصفقة',
-        description: `تم فتح الصفقة بنجاح عند سعر ${data.executionPrice}`,
+        description: `تم فتح الصفقة بنجاح عند سعر ${data.entry_price}`,
       });
     },
     onError: (error: Error) => {
@@ -110,6 +86,7 @@ export const useExecuteTrade = () => {
  */
 export const useCloseTrade = () => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async ({ tradeId, exitPrice }: { tradeId: string; exitPrice: number }) => {
@@ -128,7 +105,7 @@ export const useCloseTrade = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CACHE_KEYS.TRADES] });
+      queryClient.invalidateQueries({ queryKey: ['trades'] });
       
       toast({
         title: 'تم إغلاق الصفقة',

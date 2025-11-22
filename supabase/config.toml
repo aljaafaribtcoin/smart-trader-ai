@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.calculate-technical-indicators]
 verify_jwt = false
+
+[functions.chat-ai]
+verify_jwt = true

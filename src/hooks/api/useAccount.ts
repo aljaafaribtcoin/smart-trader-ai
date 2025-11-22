@@ -1,16 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Account, AccountStats } from '@/types';
-import { CACHE_KEYS, CACHE_TIMES } from '@/services/constants';
+import { CACHE_TIMES } from '@/services/constants';
+import { useAuth } from '../useAuth';
 
 /**
  * Hook to fetch account data from Supabase
  */
-export const useAccount = (userId: string, enabled: boolean = true) => {
+export const useAccount = () => {
+  const { user } = useAuth();
+  
   return useQuery({
-    queryKey: [CACHE_KEYS.ACCOUNT, userId],
+    queryKey: ['account', user?.id],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
       const { data, error } = await supabase
@@ -37,34 +38,21 @@ export const useAccount = (userId: string, enabled: boolean = true) => {
 
       return data;
     },
-    staleTime: CACHE_TIMES.MEDIUM,
-    enabled,
+    staleTime: CACHE_TIMES.SHORT,
+    enabled: !!user,
   });
 };
 
 /**
  * Hook to fetch account statistics from Supabase
  */
-export const useAccountStats = (userId: string, enabled: boolean = true) => {
+export const useAccountStats = () => {
+  const { user } = useAuth();
+  
   return useQuery({
-    queryKey: ['account-stats', userId],
-    queryFn: async (): Promise<AccountStats> => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        return {
-          totalTrades: 0,
-          winningTrades: 0,
-          losingTrades: 0,
-          winRate: 0,
-          totalProfit: 0,
-          totalLoss: 0,
-          netProfit: 0,
-          averageWin: 0,
-          averageLoss: 0,
-          profitFactor: 0,
-          maxDrawdown: 0,
-        };
-      }
+    queryKey: ['account-stats', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
 
       const { data: trades, error } = await supabase
         .from('trades')
@@ -102,6 +90,6 @@ export const useAccountStats = (userId: string, enabled: boolean = true) => {
       };
     },
     staleTime: CACHE_TIMES.MEDIUM,
-    enabled,
+    enabled: !!user,
   });
 };
