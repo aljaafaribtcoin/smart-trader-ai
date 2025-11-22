@@ -64,10 +64,15 @@ export const useExecuteTrade = () => {
 
       const { data, error } = await supabase
         .from('trades')
-        .insert({
+        .insert([{
           user_id: user.id,
-          ...tradeData
-        })
+          symbol: tradeData.symbol || '',
+          type: tradeData.type || 'long',
+          entry_price: tradeData.entryPrice || 0,
+          stop_loss: tradeData.stopLoss || 0,
+          quantity: tradeData.quantity || 0,
+          position_size: tradeData.positionSize || 0,
+        }])
         .select()
         .single();
 

@@ -52,7 +52,7 @@ const AIChat = () => {
               {msg.content}
             </div>
             <span className="text-[9px] text-muted-foreground">
-              {msg.role === "assistant" ? "AI" : "أنت"} • {msg.timestamp.toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}
+              {msg.role === "assistant" ? "AI" : "أنت"} • {new Date(msg.created_at).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}
             </span>
           </div>
           ))}
