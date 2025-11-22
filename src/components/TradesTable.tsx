@@ -62,7 +62,7 @@ const TradesTable = () => {
             <tbody>
               {trades.map((trade) => {
                 const pnl = trade.pnl || 0;
-                const pnlPercent = trade.pnlPercentage?.toFixed(2) || '0.00';
+                const pnlPercent = trade.pnl_percentage?.toFixed(2) || '0.00';
                 
                 return (
                   <tr
@@ -73,13 +73,13 @@ const TradesTable = () => {
                     <td className={`py-1.5 font-semibold ${trade.type === 'long' ? 'text-success' : 'text-destructive'}`}>
                       {trade.type === 'long' ? 'Long' : 'Short'}
                     </td>
-                    <td className="py-1.5">{trade.entryPrice.toFixed(2)}</td>
-                    <td className="py-1.5">{trade.stopLoss.toFixed(2)}</td>
-                    <td className="py-1.5">{trade.takeProfits[0]?.price.toFixed(2) || '-'}</td>
+                    <td className="py-1.5">{trade.entry_price.toFixed(2)}</td>
+                    <td className="py-1.5">{trade.stop_loss.toFixed(2)}</td>
+                    <td className="py-1.5">-</td>
                     <td className={`py-1.5 font-semibold ${pnl >= 0 ? 'text-success' : 'text-destructive'}`}>
                       {pnl >= 0 ? '+' : ''}{pnlPercent}%
                     </td>
-                    <td className="py-1.5 text-muted-foreground">{trade.aiReason || 'تحليل AI'}</td>
+                    <td className="py-1.5 text-muted-foreground">{trade.ai_reason || 'تحليل AI'}</td>
                   </tr>
                 );
               })}

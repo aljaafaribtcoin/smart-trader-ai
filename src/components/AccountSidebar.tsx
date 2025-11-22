@@ -45,11 +45,11 @@ const AccountSidebar = () => {
           <div className="grid grid-cols-2 gap-2 text-[11px] mt-2">
             <Card className="bg-muted/30 px-2 py-1.5">
               <div className="text-muted-foreground">الصفقات المفتوحة</div>
-              <div className="font-semibold text-warning">{account.openTrades}</div>
+              <div className="font-semibold text-warning">{account.open_trades}</div>
             </Card>
             <Card className="bg-muted/30 px-2 py-1.5">
               <div className="text-muted-foreground">نسبة الربح</div>
-              <div className="font-semibold text-success">{account.winRate}%</div>
+              <div className="font-semibold text-success">{account.win_rate}%</div>
             </Card>
           </div>
         </Card>
@@ -83,11 +83,11 @@ const AccountSidebar = () => {
                   <span className="text-[10px] text-muted-foreground">فريم {item.timeframe}</span>
                 </div>
                 <div className="text-right">
-                  <div className={`font-semibold text-sm ${item.changePercentage >= 0 ? "text-success" : "text-destructive"}`}>
+                  <div className={`font-semibold text-sm ${(item.change_percentage || 0) >= 0 ? "text-success" : "text-destructive"}`}>
                     {item.price}
                   </div>
-                  <div className={`text-[10px] ${item.changePercentage >= 0 ? "text-success" : "text-destructive"}`}>
-                    {item.change}
+                  <div className={`text-[10px] ${(item.change_percentage || 0) >= 0 ? "text-success" : "text-destructive"}`}>
+                    {(item.change_percentage || 0) >= 0 ? '+' : ''}{(item.change_percentage || 0).toFixed(2)}%
                   </div>
                 </div>
               </button>

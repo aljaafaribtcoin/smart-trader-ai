@@ -24,11 +24,12 @@ const PatternScanner = () => {
       ) : patterns && patterns.length > 0 ? (
         <div className="space-y-1.5">
           {patterns.map((pattern, index) => {
-            const signalColor = pattern.signal === 'bullish' 
+            const confidence = pattern.confidence || 0;
+            const signalColor = confidence > 70 
               ? 'bg-success/10 text-success border-success/40'
-              : pattern.signal === 'bearish'
-              ? 'bg-destructive/10 text-destructive border-destructive/40'
-              : 'bg-warning/10 text-warning border-warning/40';
+              : confidence > 40
+              ? 'bg-warning/10 text-warning border-warning/40'
+              : 'bg-destructive/10 text-destructive border-destructive/40';
               
             return (
               <div
@@ -38,13 +39,13 @@ const PatternScanner = () => {
                 }`}
               >
                 <div>
-                  <div className="font-semibold">{pattern.name}</div>
+                  <div className="font-semibold">{pattern.pattern_name}</div>
                   <div className="text-[10px] text-muted-foreground">
-                    فريم {pattern.timeframe} - القوة: {pattern.strength}
+                    فريم {pattern.timeframe} - الثقة: {confidence}%
                   </div>
                 </div>
                 <span className={`px-2 py-0.5 rounded-full border ${signalColor}`}>
-                  {pattern.signal === 'bullish' ? 'إشارة صعود' : pattern.signal === 'bearish' ? 'إشارة هبوط' : 'تحت المراقبة'}
+                  {pattern.status === 'active' ? 'نشط' : pattern.status === 'completed' ? 'مكتمل' : 'تحت المراقبة'}
                 </span>
               </div>
             );
