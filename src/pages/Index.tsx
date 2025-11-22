@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import AccountSidebar from "@/components/AccountSidebar";
 import CurrencySelector from "@/components/CurrencySelector";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
+import { useMarketDataInitializer } from "@/hooks/useMarketDataInitializer";
 
 // Lazy load heavy components
 const ChartSection = lazy(() => import("@/components/ChartSection"));
@@ -14,6 +15,20 @@ const PatternScanner = lazy(() => import("@/components/PatternScanner"));
 const AIChat = lazy(() => import("@/components/AIChat"));
 
 const Index = () => {
+  const { isInitializing } = useMarketDataInitializer();
+
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/20 to-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold mb-2">جاري تحميل بيانات السوق...</h2>
+          <p className="text-muted-foreground text-sm">قد يستغرق هذا بضع ثوانٍ</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted/20">
       <Header />

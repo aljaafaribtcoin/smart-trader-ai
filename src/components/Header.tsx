@@ -45,10 +45,10 @@ const Header = () => {
 
         <div className="flex items-center gap-3">
           <div className="hidden sm:flex items-center gap-2 text-xs">
-            <span className="text-muted-foreground">البورصة</span>
+            <span className="text-muted-foreground">مصدر البيانات</span>
             <Button variant="outline" size="sm" className="h-auto px-2.5 py-1 text-xs">
               <span className="w-2 h-2 rounded-full bg-success animate-pulse ml-1"></span>
-              Binance Futures
+              Bybit & LiveCoinWatch
             </Button>
           </div>
 
