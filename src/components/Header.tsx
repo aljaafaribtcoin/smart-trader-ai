@@ -42,6 +42,13 @@ const Header = () => {
           >
             📊 الرسوم البيانية
           </NavLink>
+          <NavLink 
+            to="/trades"
+            className="px-3 py-1.5 rounded-lg text-sm transition-colors hover:bg-muted"
+            activeClassName="bg-primary text-primary-foreground hover:bg-primary"
+          >
+            💼 الصفقات
+          </NavLink>
         </nav>
 
         <div className="flex items-center gap-3">
