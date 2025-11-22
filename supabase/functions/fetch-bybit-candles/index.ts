@@ -36,14 +36,16 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get parameters from request
-    const { symbol, timeframe, limit } = await req.json().catch(() => ({
-      symbol: 'BTCUSDT',
-      timeframe: '1', // 1 minute
-      limit: 200,
-    }));
-
-    console.log(`Fetching candles for ${symbol}, timeframe: ${timeframe}, limit: ${limit}`);
+    // Get parameters from request or use defaults
+    const requestBody = await req.json().catch(() => ({}));
+    
+    // Define the 7 target symbols
+    const targetSymbols = ['BTCUSDT', 'ETHUSDT', 'CAKEUSDT', 'AVAXUSDT', 'SUIUSDT', 'SEIUSDT', 'PEPEUSDT'];
+    
+    // Get symbol from request or process all
+    const symbols = requestBody.symbol ? [requestBody.symbol] : targetSymbols;
+    const timeframe = requestBody.timeframe || '1m';
+    const limit = requestBody.limit || 200;
 
     // Map timeframe to Bybit interval
     const intervalMap: Record<string, string> = {
@@ -58,65 +60,82 @@ Deno.serve(async (req) => {
     };
 
     const interval = intervalMap[timeframe] || '1';
-
-    // Fetch candles from Bybit
-    const bybitUrl = `https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=${interval}&limit=${limit}`;
     
-    console.log('Fetching from Bybit:', bybitUrl);
+    let totalUpdated = 0;
+    const results = [];
 
-    const response = await fetch(bybitUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    // Process each symbol
+    for (const symbol of symbols) {
+      console.log(`Fetching candles for ${symbol}, timeframe: ${timeframe}, limit: ${limit}`);
 
-    if (!response.ok) {
-      throw new Error(`Bybit API error: ${response.statusText}`);
+      // Fetch candles from Bybit
+      const bybitUrl = `https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=${interval}&limit=${limit}`;
+      
+      console.log('Fetching from Bybit:', bybitUrl);
+
+      const response = await fetch(bybitUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        console.error(`Bybit API error for ${symbol}: ${response.statusText}`);
+        continue;
+      }
+
+      const bybitData: BybitResponse = await response.json();
+
+      if (bybitData.retCode !== 0) {
+        console.error(`Bybit API error for ${symbol}: ${bybitData.retMsg}`);
+        continue;
+      }
+
+      console.log(`Fetched ${bybitData.result.list.length} candles for ${symbol}`);
+
+      // Transform Bybit data to our format
+      const candleData = bybitData.result.list.map((candle: string[]) => ({
+        symbol: symbol,
+        timeframe: timeframe,
+        open: parseFloat(candle[1]),
+        high: parseFloat(candle[2]),
+        low: parseFloat(candle[3]),
+        close: parseFloat(candle[4]),
+        volume: parseFloat(candle[5]),
+        timestamp: new Date(parseInt(candle[0])).toISOString(),
+        source: 'bybit',
+      }));
+
+      // Upsert into market_candles table
+      const { data, error } = await supabase
+        .from('market_candles')
+        .upsert(candleData, {
+          onConflict: 'symbol,timeframe,timestamp,source',
+          ignoreDuplicates: false,
+        })
+        .select();
+
+      if (error) {
+        console.error(`Database error for ${symbol}:`, error);
+        continue;
+      }
+
+      const updated = data?.length || 0;
+      totalUpdated += updated;
+      console.log(`Successfully updated ${updated} candles for ${symbol}`);
+      
+      results.push({
+        symbol,
+        updated,
+      });
     }
-
-    const bybitData: BybitResponse = await response.json();
-
-    if (bybitData.retCode !== 0) {
-      throw new Error(`Bybit API error: ${bybitData.retMsg}`);
-    }
-
-    console.log(`Fetched ${bybitData.result.list.length} candles from Bybit`);
-
-    // Transform Bybit data to our format
-    const candleData = bybitData.result.list.map((candle: string[]) => ({
-      symbol: symbol,
-      timeframe: timeframe,
-      open: parseFloat(candle[1]),
-      high: parseFloat(candle[2]),
-      low: parseFloat(candle[3]),
-      close: parseFloat(candle[4]),
-      volume: parseFloat(candle[5]),
-      timestamp: new Date(parseInt(candle[0])).toISOString(),
-      source: 'bybit',
-    }));
-
-    // Upsert into market_candles table
-    const { data, error } = await supabase
-      .from('market_candles')
-      .upsert(candleData, {
-        onConflict: 'symbol,timeframe,timestamp,source',
-        ignoreDuplicates: false,
-      })
-      .select();
-
-    if (error) {
-      console.error('Database error:', error);
-      throw error;
-    }
-
-    console.log(`Successfully updated ${data?.length || 0} candles`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        updated: data?.length || 0,
-        candles: data,
+        totalUpdated,
+        results,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
