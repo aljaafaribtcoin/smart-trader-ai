@@ -82,58 +82,50 @@ export const CandlestickChart = ({ candles, symbol, timeframe }: CandlestickChar
   };
 
   return (
-    <Card className="p-4">
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold mb-1">
-          {symbol} - {timeframe}
-        </h3>
-        <p className="text-sm text-muted-foreground">
-          عرض الشموع اليابانية مع خطوط الاتجاه
-        </p>
+    <Card className="p-2.5 sm:p-3 h-[320px] sm:h-[380px] shadow-soft">
+      <div className="flex items-center justify-between mb-2 text-[11px]">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <span>شارت السعر</span>
+          <span className="px-2 py-0.5 rounded-full bg-muted border text-[10px]">
+            {symbol} • {timeframe}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="px-2 py-0.5 rounded-xl bg-success/20 text-success border border-success/50 text-[10px]">
+            ✓ بيانات حقيقية من Bybit
+          </button>
+        </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={500}>
+      <ResponsiveContainer width="100%" height={260}>
         <ComposedChart
           data={chartData}
-          margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+          margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
           <XAxis
             dataKey="timestamp"
             stroke="hsl(var(--muted-foreground))"
-            fontSize={11}
-            tickMargin={10}
+            fontSize={10}
+            tickMargin={5}
             interval="preserveStartEnd"
-            minTickGap={50}
+            minTickGap={30}
           />
           <YAxis
             stroke="hsl(var(--muted-foreground))"
-            fontSize={11}
-            tickMargin={10}
+            fontSize={10}
+            tickMargin={5}
             domain={['auto', 'auto']}
             tickFormatter={(value) => `$${value.toFixed(0)}`}
           />
           <Tooltip content={<CustomTooltip />} />
-
-          {/* Candlestick wicks (high-low lines) */}
-          {chartData.map((entry, index) => (
-            <Line
-              key={`wick-${index}`}
-              type="linear"
-              dataKey="wick"
-              stroke={entry.isBullish ? 'hsl(var(--success))' : 'hsl(var(--destructive))'}
-              strokeWidth={1}
-              dot={false}
-              connectNulls
-            />
-          ))}
 
           {/* Bullish candles */}
           <Bar
             dataKey={(data) => (data.isBullish ? data.body : null)}
             fill="hsl(var(--success))"
             opacity={0.8}
-            barSize={8}
+            barSize={6}
           />
 
           {/* Bearish candles */}
@@ -141,7 +133,7 @@ export const CandlestickChart = ({ candles, symbol, timeframe }: CandlestickChar
             dataKey={(data) => (!data.isBullish ? data.body : null)}
             fill="hsl(var(--destructive))"
             opacity={0.8}
-            barSize={8}
+            barSize={6}
           />
 
           {/* Close price line */}

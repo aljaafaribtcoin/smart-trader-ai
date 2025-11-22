@@ -4,18 +4,51 @@ import { useToast } from "@/hooks/use-toast";
 import { useTradingStore } from "@/store/tradingStore";
 import { useAnalyzeSymbol } from "@/hooks/api/useAIAnalysis";
 
+import { useTrendAnalysis } from "@/hooks/api/useMarketData";
+
 const CurrencySelector = () => {
   const { toast } = useToast();
   const { selectedSymbol, selectedTimeframe, setTimeframe } = useTradingStore();
   const { mutate: analyzeSymbol, isPending: isAnalyzing } = useAnalyzeSymbol();
+  const { data: trendData } = useTrendAnalysis(selectedSymbol);
 
-  const timeframes = ["5m", "15m", "1H", "4H", "1D"];
-  const frameSignals = [
-    { tf: "5m", signal: "تذبذب", color: "text-warning" },
-    { tf: "15m", signal: "إشارة شراء", color: "text-success" },
-    { tf: "1H", signal: "ضعيف صاعد", color: "text-warning" },
-    { tf: "4H", signal: "هابط", color: "text-destructive" },
-  ];
+  const timeframes = ["5m", "15m", "1h", "4h"];
+  
+  // Map trend data to frame signals
+  const frameSignals = timeframes.map(tf => {
+    const trend = trendData?.find(t => t.timeframe === tf);
+    if (!trend) {
+      return { tf, signal: "لا توجد بيانات", color: "text-muted-foreground" };
+    }
+    
+    return {
+      tf,
+      signal: trend.signal,
+      color: trend.signalColor,
+    };
+  });
+
+  // Calculate overall trend
+  const bullishCount = trendData?.filter(t => t.direction === 'bullish').length || 0;
+  const bearishCount = trendData?.filter(t => t.direction === 'bearish').length || 0;
+  const totalFrames = trendData?.length || 1;
+  const bullishPercentage = (bullishCount / totalFrames) * 100;
+
+  let trendLabel = "محايد";
+  let trendColor = "text-warning";
+  if (bullishPercentage >= 70) {
+    trendLabel = "صاعد قوي";
+    trendColor = "text-success";
+  } else if (bullishPercentage >= 50) {
+    trendLabel = "تميل للصعود";
+    trendColor = "text-success";
+  } else if (bullishPercentage <= 30) {
+    trendLabel = "هابط قوي";
+    trendColor = "text-destructive";
+  } else if (bullishPercentage < 50) {
+    trendLabel = "تميل للهبوط";
+    trendColor = "text-destructive";
+  }
 
   const handleAnalyze = () => {
     analyzeSymbol({ symbol: selectedSymbol, timeframe: selectedTimeframe });
@@ -71,15 +104,22 @@ const CurrencySelector = () => {
         <div className="col-span-2 sm:col-span-1 flex flex-col justify-center">
           <span className="text-muted-foreground mb-1">اتجاه الفريمات</span>
           <div className="h-2 rounded-full bg-border overflow-hidden">
-            <div className="w-3/4 h-full bg-gradient-to-l from-success to-warning"></div>
+            <div 
+              className={`h-full transition-all duration-500 ${
+                bullishPercentage >= 50 
+                  ? 'bg-gradient-to-l from-success to-warning' 
+                  : 'bg-gradient-to-l from-destructive to-warning'
+              }`}
+              style={{ width: `${Math.max(bullishPercentage, 100 - bullishPercentage)}%` }}
+            ></div>
           </div>
-          <span className="mt-1 text-success font-semibold">تميل للصعود</span>
+          <span className={`mt-1 font-semibold ${trendColor}`}>{trendLabel}</span>
         </div>
 
         {frameSignals.map((frame) => (
           <Card key={frame.tf} className="flex flex-col items-center bg-muted/30 px-2 py-1.5">
             <span className="text-muted-foreground">{frame.tf}</span>
-            <span className={`font-semibold ${frame.color}`}>{frame.signal}</span>
+            <span className={`font-semibold text-[10px] ${frame.color}`}>{frame.signal}</span>
           </Card>
         ))}
       </div>

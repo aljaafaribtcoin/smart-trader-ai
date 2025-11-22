@@ -12,31 +12,66 @@ const MarketInsights = () => {
 
   if (isLoading) return <LoadingSkeleton type="card" count={1} />;
 
+  if (!trendData || trendData.length === 0 || !volumeData) {
+    return (
+      <Card className="p-3 text-center text-muted-foreground">
+        لا توجد بيانات كافية لعرض التحليل
+      </Card>
+    );
+  }
+
   const volumeTrend = volumeData?.trend === 'increasing' ? 'قوي' : volumeData?.trend === 'decreasing' ? 'ضعيف' : 'متوسط';
-  const volumeColor = volumeData?.trend === 'increasing' ? 'text-success' : 'text-warning';
+  const volumeColor = volumeData?.trend === 'increasing' ? 'text-success' : volumeData?.trend === 'decreasing' ? 'text-destructive' : 'text-warning';
+  
+  // Calculate momentum from trend data
+  const bullishCount = trendData.filter(t => t.direction === 'bullish').length;
+  const bearishCount = trendData.filter(t => t.direction === 'bearish').length;
+  const rangingCount = trendData.filter(t => t.direction === 'ranging').length;
+  
+  let momentumStatus = "تذبذب";
+  let momentumColor = "text-warning";
+  let momentumDescription = "الفريمات متباينة، لا يوجد اتجاه واضح";
+  
+  if (bullishCount > bearishCount + rangingCount) {
+    momentumStatus = "صاعد قوي";
+    momentumColor = "text-success";
+    momentumDescription = "معظم الفريمات تظهر زخم صعودي واضح";
+  } else if (bearishCount > bullishCount + rangingCount) {
+    momentumStatus = "هابط قوي";
+    momentumColor = "text-destructive";
+    momentumDescription = "معظم الفريمات تظهر زخم هبوطي واضح";
+  } else if (bullishCount > bearishCount) {
+    momentumStatus = "يميل للصعود";
+    momentumColor = "text-success";
+    momentumDescription = "الفريمات تظهر تحسناً تدريجياً";
+  } else if (bearishCount > bullishCount) {
+    momentumStatus = "يميل للهبوط";
+    momentumColor = "text-destructive";
+    momentumDescription = "الفريمات تظهر ضعفاً تدريجياً";
+  }
   
   const insights = [
     {
       title: "حجم السيولة",
       status: volumeTrend,
       statusColor: volumeColor,
-      description: `السيولة الحالية ${volumeData?.percentageChange && volumeData.percentageChange > 0 ? 'أعلى' : 'أقل'} من المتوسط 30 يوم`,
+      description: `الحجم الحالي ${volumeData.percentageChange > 0 ? 'أعلى' : 'أقل'} من متوسط 30 يوم بنسبة ${Math.abs(volumeData.percentageChange).toFixed(1)}%`,
     },
     {
       title: "زخم الحركة",
-      status: "يتعافى",
-      statusColor: "text-warning",
-      description: "المؤشرات تظهر تحسناً تدريجياً على الفريمات الصغيرة",
+      status: momentumStatus,
+      statusColor: momentumColor,
+      description: momentumDescription,
     },
     {
-      title: "مناطق السعر المهمة",
-      status: "3 مناطق",
+      title: "توزيع الفريمات",
+      status: `${trendData.length} فريمات`,
       statusColor: "text-secondary",
       description: null,
       zones: [
-        { label: "منطقة طلب قوية", value: "14.20 - 14.40", color: "text-success" },
-        { label: "مقاومة قريبة", value: "15.80", color: "text-warning" },
-        { label: "كسر سلبي", value: "< 14.10", color: "text-destructive" },
+        { label: "صاعد", value: `${bullishCount} فريم`, color: "text-success" },
+        { label: "هابط", value: `${bearishCount} فريم`, color: "text-destructive" },
+        { label: "تذبذب", value: `${rangingCount} فريم`, color: "text-warning" },
       ],
     },
   ];
