@@ -3,6 +3,7 @@ import { Sparkles, Filter, RefreshCw, TrendingUp, TrendingDown, Activity } from 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Header from '@/components/Header';
 import {
   Select,
   SelectContent,
@@ -42,25 +43,28 @@ export default function Patterns() {
   const uniqueSymbols = [...new Set(patterns?.map(p => p.symbol) || [])];
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-            <Sparkles className="h-8 w-8 text-primary" />
-            كاشف الأنماط
-          </h1>
-          <p className="text-muted-foreground">
-            اكتشاف تلقائي للأنماط الفنية (Head & Shoulders, Double Top/Bottom, Flags)
-          </p>
+    <>
+      <Header />
+      <div className="container mx-auto p-4 sm:p-6 max-w-7xl">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2 flex items-center gap-2">
+              <Sparkles className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
+              كاشف الأنماط
+            </h1>
+            <p className="text-muted-foreground text-sm sm:text-base">
+              اكتشاف تلقائي للأنماط الفنية (Head & Shoulders, Double Top/Bottom, Flags)
+            </p>
+          </div>
+          <Button 
+            onClick={handleDetectPatterns}
+            disabled={detectPatterns.isPending}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${detectPatterns.isPending ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">{detectPatterns.isPending ? 'جاري الكشف...' : 'كشف الأنماط الآن'}</span>
+          </Button>
         </div>
-        <Button 
-          onClick={handleDetectPatterns}
-          disabled={detectPatterns.isPending}
-        >
-          <RefreshCw className={`h-4 w-4 ml-2 ${detectPatterns.isPending ? 'animate-spin' : ''}`} />
-          {detectPatterns.isPending ? 'جاري الكشف...' : 'كشف الأنماط الآن'}
-        </Button>
-      </div>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -245,5 +249,6 @@ export default function Patterns() {
         </TabsContent>
       </Tabs>
     </div>
+    </>
   );
 }

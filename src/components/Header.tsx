@@ -5,16 +5,34 @@ import UserMenu from "./UserMenu";
 import { NavLink } from "./NavLink";
 import { SymbolsDropdown } from "./SymbolsDropdown";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
-import { Menu } from "lucide-react";
+import { Menu, ArrowRight } from "lucide-react";
 import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Show back button on non-home pages
+  const showBackButton = location.pathname !== '/';
 
   return (
     <header className="h-16 border-b border-border backdrop-blur bg-background/80 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 flex items-center justify-between h-full">
         <div className="flex items-center gap-2 flex-1 min-w-0">
+          {/* Back Button */}
+          {showBackButton && (
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => navigate(-1)}
+              className="shrink-0 h-8 w-8 sm:h-9 sm:w-9 hover:bg-accent"
+              title="رجوع"
+            >
+              <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
+            </Button>
+          )}
           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-glow shrink-0">
             <span className="text-xs font-bold text-primary-foreground">AI</span>
           </div>

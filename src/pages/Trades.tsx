@@ -9,6 +9,7 @@ import { TradeForm } from '@/components/forms/TradeForm';
 import { useTrades, useCloseTrade } from '@/hooks/api/useTrades';
 import { LoadingSkeleton } from '@/components/common/LoadingSkeleton';
 import { ErrorMessage } from '@/components/common/ErrorMessage';
+import Header from '@/components/Header';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
@@ -125,19 +126,21 @@ export default function Trades() {
   const isLoading = loadingAll || loadingOpen || loadingClosed;
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">إدارة الصفقات</h1>
-          <p className="text-muted-foreground">
-            تتبع وإدارة صفقاتك المفتوحة والمغلقة
-          </p>
+    <>
+      <Header />
+      <div className="container mx-auto p-4 sm:p-6 max-w-6xl">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">إدارة الصفقات</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">
+              تتبع وإدارة صفقاتك المفتوحة والمغلقة
+            </p>
+          </div>
+          <Button onClick={() => setShowTradeForm(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">صفقة جديدة</span>
+          </Button>
         </div>
-        <Button onClick={() => setShowTradeForm(true)}>
-          <Plus className="h-4 w-4 ml-2" />
-          صفقة جديدة
-        </Button>
-      </div>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -245,5 +248,6 @@ export default function Trades() {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 }
