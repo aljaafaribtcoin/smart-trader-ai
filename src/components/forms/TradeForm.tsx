@@ -17,6 +17,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useTradingStore } from '@/store/tradingStore';
 import { useUserStore } from '@/store/userStore';
+import { useExecuteTrade } from '@/hooks/api/useTrades';
 
 interface TradeFormProps {
   onSuccess?: () => void;
@@ -27,6 +28,7 @@ export const TradeForm = ({ onSuccess, onCancel }: TradeFormProps) => {
   const { toast } = useToast();
   const { selectedSymbol } = useTradingStore();
   const { preferences } = useUserStore();
+  const executeTrade = useExecuteTrade();
   
   const {
     register,
@@ -66,21 +68,11 @@ export const TradeForm = ({ onSuccess, onCancel }: TradeFormProps) => {
 
   const onSubmit = async (data: TradeFormData) => {
     try {
-      // TODO: استدعاء API لتنفيذ الصفقة
-      console.log('Trade data:', data);
-      
-      toast({
-        title: 'تم إنشاء الصفقة',
-        description: `صفقة ${data.type} على ${data.symbol} بنجاح`,
-      });
-      
+      await executeTrade.mutateAsync(data);
       onSuccess?.();
     } catch (error) {
-      toast({
-        title: 'خطأ',
-        description: 'فشل في إنشاء الصفقة',
-        variant: 'destructive',
-      });
+      // Error handling is done in the mutation
+      console.error('Trade execution error:', error);
     }
   };
 
@@ -296,10 +288,10 @@ export const TradeForm = ({ onSuccess, onCancel }: TradeFormProps) => {
         )}
         <Button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || executeTrade.isPending}
           className="flex-1"
         >
-          {isSubmitting ? 'جاري التنفيذ...' : 'تنفيذ الصفقة'}
+          {isSubmitting || executeTrade.isPending ? 'جاري التنفيذ...' : 'تنفيذ الصفقة'}
         </Button>
       </div>
     </form>

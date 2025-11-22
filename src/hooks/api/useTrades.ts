@@ -44,31 +44,65 @@ export const useExecuteTrade = () => {
 
   return useMutation({
     mutationFn: async (tradeData: any) => {
-      if (!user) throw new Error('User not authenticated');
+      if (!user) throw new Error('المستخدم غير مسجل دخول');
 
-      const { data, error } = await supabase
+      // Calculate quantity from position size and entry price
+      const quantity = tradeData.positionSize / tradeData.entryPrice;
+      
+      // Calculate risk/reward
+      const risk = Math.abs(tradeData.entryPrice - tradeData.stopLoss);
+      const avgTarget = tradeData.takeProfits?.length > 0 
+        ? tradeData.takeProfits.reduce((sum: number, tp: any) => sum + tp.price, 0) / tradeData.takeProfits.length
+        : tradeData.entryPrice;
+      const reward = Math.abs(avgTarget - tradeData.entryPrice);
+      const riskReward = risk > 0 ? reward / risk : 0;
+
+      // Insert the trade
+      const { data: trade, error: tradeError } = await supabase
         .from('trades')
         .insert([{
           user_id: user.id,
-          symbol: tradeData.symbol || '',
-          type: tradeData.type || 'long',
-          entry_price: tradeData.entryPrice || 0,
-          stop_loss: tradeData.stopLoss || 0,
-          quantity: tradeData.quantity || 0,
-          position_size: tradeData.positionSize || 0,
+          symbol: tradeData.symbol,
+          type: tradeData.type,
+          entry_price: tradeData.entryPrice,
+          stop_loss: tradeData.stopLoss,
+          quantity: quantity,
+          position_size: tradeData.positionSize,
+          leverage: tradeData.leverage || 10,
+          risk_reward: riskReward,
+          notes: tradeData.notes || null,
+          status: 'open',
         }])
         .select()
         .single();
 
-      if (error) throw error;
-      return data;
+      if (tradeError) throw tradeError;
+
+      // Insert take profits if any
+      if (tradeData.takeProfits && tradeData.takeProfits.length > 0 && trade) {
+        const takeProfitsData = tradeData.takeProfits.map((tp: any, index: number) => ({
+          trade_id: trade.id,
+          level: index + 1,
+          price: tp.price,
+          percentage: tp.percentage,
+          hit: false,
+        }));
+
+        const { error: tpError } = await supabase
+          .from('take_profits')
+          .insert(takeProfitsData);
+
+        if (tpError) console.error('Error inserting take profits:', tpError);
+      }
+
+      return trade;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['trades'] });
       
       toast({
         title: 'تم تنفيذ الصفقة',
-        description: `تم فتح الصفقة بنجاح عند سعر ${data.entry_price}`,
+        description: `تم فتح صفقة ${data.type === 'long' ? 'شراء' : 'بيع'} على ${data.symbol} عند ${data.entry_price}`,
       });
     },
     onError: (error: Error) => {
