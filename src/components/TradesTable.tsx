@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { useTrades } from "@/hooks/api/useTrades";
-import { useUserStore } from "@/store/userStore";
 import { LoadingSkeleton } from "./common/LoadingSkeleton";
 import { ErrorMessage } from "./common/ErrorMessage";
 import { EmptyState } from "./common/EmptyState";
@@ -10,9 +9,7 @@ import { TrendingUp } from "lucide-react";
 
 const TradesTable = () => {
   const [activeTab, setActiveTab] = useState<"open" | "closed">("open");
-  const { userId } = useUserStore();
-  
-  const { data: trades, isLoading, error } = useTrades(userId, activeTab);
+  const { data: trades = [], isLoading, error } = useTrades(activeTab);
 
   return (
     <Card className="p-3 sm:p-4 shadow-soft">
