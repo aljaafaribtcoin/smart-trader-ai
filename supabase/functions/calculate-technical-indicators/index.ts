@@ -1,101 +1,149 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.84.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Simple RSI calculation
-function calculateRSI(prices: number[], period: number = 14): number {
-  if (prices.length < period + 1) return 50; // Default to neutral
+interface Candle {
+  timestamp: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
 
-  const changes = [];
-  for (let i = 1; i < prices.length; i++) {
-    changes.push(prices[i] - prices[i - 1]);
-  }
-
+// Advanced RSI Calculation with Wilder's Smoothing
+function calculateRSI(closes: number[], period: number = 14): number {
+  if (closes.length < period + 1) return 50;
+  
   let gains = 0;
   let losses = 0;
-
-  for (let i = 0; i < period; i++) {
-    if (changes[i] > 0) gains += changes[i];
-    else losses += Math.abs(changes[i]);
+  
+  for (let i = 1; i <= period; i++) {
+    const change = closes[i] - closes[i - 1];
+    if (change > 0) gains += change;
+    else losses += Math.abs(change);
   }
-
-  const avgGain = gains / period;
-  const avgLoss = losses / period;
-
+  
+  let avgGain = gains / period;
+  let avgLoss = losses / period;
+  
+  for (let i = period + 1; i < closes.length; i++) {
+    const change = closes[i] - closes[i - 1];
+    const gain = change > 0 ? change : 0;
+    const loss = change < 0 ? Math.abs(change) : 0;
+    
+    avgGain = ((avgGain * (period - 1)) + gain) / period;
+    avgLoss = ((avgLoss * (period - 1)) + loss) / period;
+  }
+  
   if (avgLoss === 0) return 100;
-
   const rs = avgGain / avgLoss;
   return 100 - (100 / (1 + rs));
 }
 
-// Simple EMA calculation
-function calculateEMA(prices: number[], period: number): number {
-  if (prices.length < period) return prices[prices.length - 1];
-
-  const k = 2 / (period + 1);
-  let ema = prices[0];
-
-  for (let i = 1; i < prices.length; i++) {
-    ema = prices[i] * k + ema * (1 - k);
+// Exponential Moving Average
+function calculateEMA(closes: number[], period: number): number {
+  if (closes.length < period) return closes[closes.length - 1];
+  
+  const multiplier = 2 / (period + 1);
+  let ema = closes.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  
+  for (let i = period; i < closes.length; i++) {
+    ema = (closes[i] - ema) * multiplier + ema;
   }
-
+  
   return ema;
 }
 
-// MACD calculation
-function calculateMACD(prices: number[]) {
-  const ema12 = calculateEMA(prices, 12);
-  const ema26 = calculateEMA(prices, 26);
-  const macdValue = ema12 - ema26;
-
-  // Simple signal line (9-period EMA of MACD)
-  const macdSignal = macdValue * 0.2; // Simplified
-  const histogram = macdValue - macdSignal;
-
-  return {
-    value: macdValue,
-    signal: macdSignal,
-    histogram: histogram,
-  };
-}
-
-// Bollinger Bands calculation
-function calculateBollingerBands(prices: number[], period: number = 20, stdDev: number = 2) {
-  const sma = prices.slice(-period).reduce((a, b) => a + b, 0) / period;
+// MACD Calculation
+function calculateMACD(closes: number[]): { macd: number; signal: number; histogram: number } {
+  const ema12 = calculateEMA(closes, 12);
+  const ema26 = calculateEMA(closes, 26);
+  const macd = ema12 - ema26;
   
-  const squaredDiffs = prices.slice(-period).map(price => Math.pow(price - sma, 2));
-  const variance = squaredDiffs.reduce((a, b) => a + b, 0) / period;
-  const std = Math.sqrt(variance);
+  const macdValues: number[] = [];
+  for (let i = 26; i < closes.length; i++) {
+    const slice = closes.slice(0, i + 1);
+    const e12 = calculateEMA(slice, 12);
+    const e26 = calculateEMA(slice, 26);
+    macdValues.push(e12 - e26);
+  }
+  
+  const signal = calculateEMA(macdValues, 9);
+  const histogram = macd - signal;
+  
+  return { macd, signal, histogram };
+}
 
+// Bollinger Bands
+function calculateBollingerBands(closes: number[], period: number = 20, stdDev: number = 2): {
+  upper: number;
+  middle: number;
+  lower: number;
+} {
+  if (closes.length < period) {
+    const avg = closes.reduce((a, b) => a + b, 0) / closes.length;
+    return { upper: avg, middle: avg, lower: avg };
+  }
+  
+  const slice = closes.slice(-period);
+  const middle = slice.reduce((a, b) => a + b, 0) / period;
+  const variance = slice.reduce((sum, val) => sum + Math.pow(val - middle, 2), 0) / period;
+  const std = Math.sqrt(variance);
+  
   return {
-    upper: sma + (stdDev * std),
-    middle: sma,
-    lower: sma - (stdDev * std),
+    upper: middle + (std * stdDev),
+    middle,
+    lower: middle - (std * stdDev),
   };
 }
 
-// ATR calculation
-function calculateATR(candles: any[], period: number = 14): number {
-  if (candles.length < period) return 0;
-
-  const trueRanges = [];
+// Average True Range
+function calculateATR(candles: Candle[], period: number = 14): number {
+  if (candles.length < period + 1) return 0;
+  
+  const trueRanges: number[] = [];
   for (let i = 1; i < candles.length; i++) {
-    const high = candles[i].high;
-    const low = candles[i].low;
-    const prevClose = candles[i - 1].close;
-
     const tr = Math.max(
-      high - low,
-      Math.abs(high - prevClose),
-      Math.abs(low - prevClose)
+      candles[i].high - candles[i].low,
+      Math.abs(candles[i].high - candles[i - 1].close),
+      Math.abs(candles[i].low - candles[i - 1].close)
     );
     trueRanges.push(tr);
   }
-
+  
   return trueRanges.slice(-period).reduce((a, b) => a + b, 0) / period;
+}
+
+// Stochastic Oscillator
+function calculateStochastic(candles: Candle[], period: number = 14, smoothK: number = 3): {
+  k: number;
+  d: number;
+} {
+  if (candles.length < period) return { k: 50, d: 50 };
+  
+  const slice = candles.slice(-period);
+  const currentClose = slice[slice.length - 1].close;
+  const lowestLow = Math.min(...slice.map(c => c.low));
+  const highestHigh = Math.max(...slice.map(c => c.high));
+  
+  const k = highestHigh === lowestLow ? 50 : ((currentClose - lowestLow) / (highestHigh - lowestLow)) * 100;
+  
+  const kValues: number[] = [];
+  for (let i = period; i <= candles.length; i++) {
+    const s = candles.slice(i - period, i);
+    const close = s[s.length - 1].close;
+    const low = Math.min(...s.map(c => c.low));
+    const high = Math.max(...s.map(c => c.high));
+    const kVal = high === low ? 50 : ((close - low) / (high - low)) * 100;
+    kValues.push(kVal);
+  }
+  
+  const d = kValues.slice(-smoothK).reduce((a, b) => a + b, 0) / smoothK;
+  return { k, d };
 }
 
 Deno.serve(async (req) => {
@@ -103,117 +151,131 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const { symbol, timeframe } = await req.json().catch(() => ({}));
+    
+    if (!symbol || !timeframe) {
+      throw new Error('Symbol and timeframe are required');
+    }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    console.log(`[Indicators] Calculating for ${symbol} ${timeframe}`);
 
-    // Get parameters from request
-    const { symbol, timeframe } = await req.json().catch(() => ({
-      symbol: 'BTCUSDT',
-      timeframe: '1h',
-    }));
+    await supabase.from('data_sync_status').upsert({
+      data_type: 'indicators',
+      symbol,
+      timeframe,
+      source: 'calculation',
+      status: 'syncing',
+      last_sync_at: new Date().toISOString(),
+    }, { onConflict: 'data_type,symbol,timeframe,source' });
 
-    console.log(`Calculating indicators for ${symbol}, timeframe: ${timeframe}`);
-
-    // Fetch candles from database
     const { data: candles, error: candlesError } = await supabase
       .from('market_candles')
       .select('*')
       .eq('symbol', symbol)
       .eq('timeframe', timeframe)
-      .order('timestamp', { ascending: false })
-      .limit(200);
+      .order('timestamp', { ascending: true })
+      .limit(500);
 
-    if (candlesError) {
-      console.error('Error fetching candles:', candlesError);
-      throw candlesError;
-    }
-
+    if (candlesError) throw candlesError;
     if (!candles || candles.length < 50) {
-      throw new Error('Not enough candle data to calculate indicators');
+      throw new Error(`Insufficient data: ${candles?.length || 0} candles`);
     }
 
-    console.log(`Found ${candles.length} candles for calculation`);
+    console.log(`[Indicators] Processing ${candles.length} candles`);
 
-    // Reverse to get chronological order
-    const sortedCandles = [...candles].reverse();
-    const closePrices = sortedCandles.map(c => parseFloat(c.close.toString()));
+    const closes = candles.map(c => c.close);
+    const rsi = calculateRSI(closes, 14);
+    const macd = calculateMACD(closes);
+    const bb = calculateBollingerBands(closes, 20, 2);
+    const ema20 = calculateEMA(closes, 20);
+    const ema50 = calculateEMA(closes, 50);
+    const ema200 = calculateEMA(closes, 200);
+    const atr = calculateATR(candles, 14);
+    const stochastic = calculateStochastic(candles, 14, 3);
 
-    // Calculate all indicators
-    const rsi = calculateRSI(closePrices);
-    const macd = calculateMACD(closePrices);
-    const ema20 = calculateEMA(closePrices, 20);
-    const ema50 = calculateEMA(closePrices, 50);
-    const ema200 = calculateEMA(closePrices, 200);
-    const bb = calculateBollingerBands(closePrices);
-    const atr = calculateATR(sortedCandles);
+    console.log(`[Indicators] RSI=${rsi.toFixed(2)}, MACD=${macd.macd.toFixed(2)}`);
 
-    // Stochastic calculation (simplified)
-    const recentCandles = sortedCandles.slice(-14);
-    const highestHigh = Math.max(...recentCandles.map(c => parseFloat(c.high.toString())));
-    const lowestLow = Math.min(...recentCandles.map(c => parseFloat(c.low.toString())));
-    const currentClose = parseFloat(sortedCandles[sortedCandles.length - 1].close.toString());
-    const stochasticK = ((currentClose - lowestLow) / (highestHigh - lowestLow)) * 100;
-    const stochasticD = stochasticK * 0.7; // Simplified
-
-    const indicators = {
+    const indicatorData = {
       symbol,
       timeframe,
-      rsi: rsi.toFixed(2),
-      macd_value: macd.value.toFixed(2),
-      macd_signal: macd.signal.toFixed(2),
-      macd_histogram: macd.histogram.toFixed(2),
-      stochastic_k: stochasticK.toFixed(2),
-      stochastic_d: stochasticD.toFixed(2),
-      ema_20: ema20.toFixed(2),
-      ema_50: ema50.toFixed(2),
-      ema_200: ema200.toFixed(2),
-      bb_upper: bb.upper.toFixed(2),
-      bb_middle: bb.middle.toFixed(2),
-      bb_lower: bb.lower.toFixed(2),
-      atr: atr.toFixed(2),
+      rsi: Math.round(rsi * 100) / 100,
+      macd_value: Math.round(macd.macd * 100) / 100,
+      macd_signal: Math.round(macd.signal * 100) / 100,
+      macd_histogram: Math.round(macd.histogram * 100) / 100,
+      bb_upper: Math.round(bb.upper * 100) / 100,
+      bb_middle: Math.round(bb.middle * 100) / 100,
+      bb_lower: Math.round(bb.lower * 100) / 100,
+      ema_20: Math.round(ema20 * 100) / 100,
+      ema_50: Math.round(ema50 * 100) / 100,
+      ema_200: Math.round(ema200 * 100) / 100,
+      atr: Math.round(atr * 100) / 100,
+      stochastic_k: Math.round(stochastic.k * 100) / 100,
+      stochastic_d: Math.round(stochastic.d * 100) / 100,
       calculated_at: new Date().toISOString(),
     };
 
-    // Upsert into technical_indicators table
-    const { data, error } = await supabase
+    const { error: insertError } = await supabase
       .from('technical_indicators')
-      .upsert(indicators, {
-        onConflict: 'symbol,timeframe',
-        ignoreDuplicates: false,
-      })
-      .select();
+      .upsert(indicatorData, { onConflict: 'symbol,timeframe' });
 
-    if (error) {
-      console.error('Database error:', error);
-      throw error;
-    }
+    if (insertError) throw insertError;
 
-    console.log(`Successfully calculated and stored indicators`);
+    await supabase.from('data_sync_status').upsert({
+      data_type: 'indicators',
+      symbol,
+      timeframe,
+      source: 'calculation',
+      status: 'success',
+      error_message: null,
+      retry_count: 0,
+      last_sync_at: new Date().toISOString(),
+      next_sync_at: new Date(Date.now() + 300000).toISOString(),
+      metadata: { candles_used: candles.length, indicators_calculated: 13 }
+    }, { onConflict: 'data_type,symbol,timeframe,source' });
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        indicators: data?.[0] || indicators,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    console.log(`[Indicators] Successfully stored for ${symbol} ${timeframe}`);
+
+    return new Response(JSON.stringify({
+      success: true,
+      symbol,
+      timeframe,
+      indicators: indicatorData,
+      candlesUsed: candles.length,
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    });
+
   } catch (error) {
-    console.error('Error in calculate-technical-indicators:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: errorMessage,
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    console.error('[Indicators] Error:', error);
+    
+    try {
+      const { symbol, timeframe } = await req.json().catch(() => ({}));
+      if (symbol && timeframe) {
+        await supabase.from('data_sync_status').upsert({
+          data_type: 'indicators',
+          symbol,
+          timeframe,
+          source: 'calculation',
+          status: 'error',
+          error_message: error instanceof Error ? error.message : 'Unknown error',
+          last_sync_at: new Date().toISOString(),
+          next_sync_at: new Date(Date.now() + 60000).toISOString(),
+        }, { onConflict: 'data_type,symbol,timeframe,source' });
       }
-    );
+    } catch {}
+
+    return new Response(JSON.stringify({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
