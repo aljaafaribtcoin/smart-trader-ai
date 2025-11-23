@@ -4,6 +4,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import UserMenu from "./UserMenu";
 import { NavLink } from "./NavLink";
 import { SymbolsDropdown } from "./SymbolsDropdown";
+import { SyncStatusIndicator } from "./SyncStatusIndicator";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { Menu, ArrowRight } from "lucide-react";
 import { useState } from "react";
@@ -116,6 +117,7 @@ const Header = () => {
           </div>
 
           <div className="hidden sm:flex items-center gap-2">
+            <SyncStatusIndicator />
             <Notifications />
             <ThemeToggle />
             <UserMenu />
