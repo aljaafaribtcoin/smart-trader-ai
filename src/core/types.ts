@@ -49,11 +49,12 @@ export const TIMEFRAME_MS: Record<Timeframe, number> = {
 };
 
 // Helper type for cache TTL (in milliseconds)
+// Reduced TTLs for more frequent updates with real data
 export const CACHE_TTL: Record<Timeframe, number> = {
-  '3m': 10 * 1000,      // 10 seconds
-  '5m': 10 * 1000,      // 10 seconds
-  '15m': 30 * 1000,     // 30 seconds
-  '1H': 60 * 1000,      // 1 minute
-  '4H': 5 * 60 * 1000,  // 5 minutes
-  '1D': 15 * 60 * 1000, // 15 minutes
+  '3m': 2 * 60 * 1000,      // 2 minutes (for high-frequency trading)
+  '5m': 3 * 60 * 1000,      // 3 minutes
+  '15m': 10 * 60 * 1000,    // 10 minutes
+  '1H': 30 * 60 * 1000,     // 30 minutes
+  '4H': 2 * 60 * 60 * 1000, // 2 hours
+  '1D': 12 * 60 * 60 * 1000,// 12 hours
 };

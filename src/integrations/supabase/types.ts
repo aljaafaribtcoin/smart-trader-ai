@@ -167,6 +167,54 @@ export type Database = {
         }
         Relationships: []
       }
+      data_sync_status: {
+        Row: {
+          created_at: string
+          data_type: string
+          error_message: string | null
+          id: string
+          last_sync_at: string
+          metadata: Json | null
+          next_sync_at: string | null
+          retry_count: number
+          source: string
+          status: string
+          symbol: string
+          timeframe: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_type: string
+          error_message?: string | null
+          id?: string
+          last_sync_at?: string
+          metadata?: Json | null
+          next_sync_at?: string | null
+          retry_count?: number
+          source?: string
+          status?: string
+          symbol: string
+          timeframe?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_type?: string
+          error_message?: string | null
+          id?: string
+          last_sync_at?: string
+          metadata?: Json | null
+          next_sync_at?: string | null
+          retry_count?: number
+          source?: string
+          status?: string
+          symbol?: string
+          timeframe?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       market_candles: {
         Row: {
           close: number

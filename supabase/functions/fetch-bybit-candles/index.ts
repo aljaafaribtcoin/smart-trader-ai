@@ -25,17 +25,30 @@ interface BybitResponse {
   };
 }
 
+// Get sync interval based on timeframe (in milliseconds)
+function getSyncInterval(timeframe: string): number {
+  const intervals: Record<string, number> = {
+    '3m': 180000,      // 3 minutes
+    '5m': 300000,      // 5 minutes
+    '15m': 900000,     // 15 minutes
+    '30m': 1800000,    // 30 minutes
+    '1h': 3600000,     // 1 hour
+    '4h': 14400000,    // 4 hours
+    '1d': 86400000,    // 1 day
+  };
+  return intervals[timeframe] || 300000; // Default 5 minutes
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
     // Get parameters from request or use defaults
     const requestBody = await req.json().catch(() => ({}));
     
@@ -47,9 +60,26 @@ Deno.serve(async (req) => {
     const timeframe = requestBody.timeframe || '1m';
     const limit = requestBody.limit || 200;
 
+    console.log(`[Fetch Candles] Starting sync for ${symbols.length} symbols, timeframe: ${timeframe}`);
+
+    // Update sync status to 'syncing'
+    for (const symbol of symbols) {
+      await supabase.from('data_sync_status').upsert({
+        data_type: 'candles',
+        symbol,
+        timeframe,
+        source: 'bybit',
+        status: 'syncing',
+        last_sync_at: new Date().toISOString(),
+      }, {
+        onConflict: 'data_type,symbol,timeframe,source'
+      });
+    }
+
     // Map timeframe to Bybit interval
     const intervalMap: Record<string, string> = {
       '1m': '1',
+      '3m': '3',
       '5m': '5',
       '15m': '15',
       '30m': '30',
@@ -66,70 +96,102 @@ Deno.serve(async (req) => {
 
     // Process each symbol
     for (const symbol of symbols) {
-      console.log(`Fetching candles for ${symbol}, timeframe: ${timeframe}, limit: ${limit}`);
+      try {
+        console.log(`[Fetch Candles] Processing ${symbol}...`);
 
-      // Fetch candles from Bybit
-      const bybitUrl = `https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=${interval}&limit=${limit}`;
-      
-      console.log('Fetching from Bybit:', bybitUrl);
+        // Fetch candles from Bybit
+        const bybitUrl = `https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=${interval}&limit=${limit}`;
+        
+        const response = await fetch(bybitUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-      const response = await fetch(bybitUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+        if (!response.ok) {
+          throw new Error(`Bybit API error: ${response.statusText}`);
+        }
 
-      if (!response.ok) {
-        console.error(`Bybit API error for ${symbol}: ${response.statusText}`);
-        continue;
+        const bybitData: BybitResponse = await response.json();
+
+        if (bybitData.retCode !== 0) {
+          throw new Error(`Bybit API error: ${bybitData.retMsg}`);
+        }
+
+        console.log(`[Fetch Candles] Fetched ${bybitData.result.list.length} candles for ${symbol}`);
+
+        // Transform Bybit data to our format
+        const candleData = bybitData.result.list.map((candle: string[]) => ({
+          symbol: symbol,
+          timeframe: timeframe,
+          open: parseFloat(candle[1]),
+          high: parseFloat(candle[2]),
+          low: parseFloat(candle[3]),
+          close: parseFloat(candle[4]),
+          volume: parseFloat(candle[5]),
+          timestamp: new Date(parseInt(candle[0])).toISOString(),
+          source: 'bybit',
+        }));
+
+        // Upsert into market_candles table
+        const { data, error } = await supabase
+          .from('market_candles')
+          .upsert(candleData, {
+            onConflict: 'symbol,timeframe,timestamp,source',
+            ignoreDuplicates: false,
+          })
+          .select();
+
+        if (error) {
+          throw error;
+        }
+
+        const updated = data?.length || 0;
+        totalUpdated += updated;
+        console.log(`[Fetch Candles] Successfully updated ${updated} candles for ${symbol}`);
+        
+        results.push({
+          symbol,
+          updated,
+          candles: candleData,
+        });
+
+        // Update sync status to 'success'
+        await supabase.from('data_sync_status').upsert({
+          data_type: 'candles',
+          symbol,
+          timeframe,
+          source: 'bybit',
+          status: 'success',
+          error_message: null,
+          retry_count: 0,
+          last_sync_at: new Date().toISOString(),
+          next_sync_at: new Date(Date.now() + getSyncInterval(timeframe)).toISOString(),
+          metadata: {
+            candles_updated: updated,
+          }
+        }, {
+          onConflict: 'data_type,symbol,timeframe,source'
+        });
+
+      } catch (symbolError) {
+        console.error(`[Fetch Candles] Error processing ${symbol}:`, symbolError);
+        
+        // Update sync status to 'error'
+        await supabase.from('data_sync_status').upsert({
+          data_type: 'candles',
+          symbol,
+          timeframe,
+          source: 'bybit',
+          status: 'error',
+          error_message: symbolError instanceof Error ? symbolError.message : 'Unknown error',
+          last_sync_at: new Date().toISOString(),
+          next_sync_at: new Date(Date.now() + 60000).toISOString(), // Retry in 1 minute
+        }, {
+          onConflict: 'data_type,symbol,timeframe,source'
+        });
       }
-
-      const bybitData: BybitResponse = await response.json();
-
-      if (bybitData.retCode !== 0) {
-        console.error(`Bybit API error for ${symbol}: ${bybitData.retMsg}`);
-        continue;
-      }
-
-      console.log(`Fetched ${bybitData.result.list.length} candles for ${symbol}`);
-
-      // Transform Bybit data to our format
-      const candleData = bybitData.result.list.map((candle: string[]) => ({
-        symbol: symbol,
-        timeframe: timeframe,
-        open: parseFloat(candle[1]),
-        high: parseFloat(candle[2]),
-        low: parseFloat(candle[3]),
-        close: parseFloat(candle[4]),
-        volume: parseFloat(candle[5]),
-        timestamp: new Date(parseInt(candle[0])).toISOString(),
-        source: 'bybit',
-      }));
-
-      // Upsert into market_candles table
-      const { data, error } = await supabase
-        .from('market_candles')
-        .upsert(candleData, {
-          onConflict: 'symbol,timeframe,timestamp,source',
-          ignoreDuplicates: false,
-        })
-        .select();
-
-      if (error) {
-        console.error(`Database error for ${symbol}:`, error);
-        continue;
-      }
-
-      const updated = data?.length || 0;
-      totalUpdated += updated;
-      console.log(`Successfully updated ${updated} candles for ${symbol}`);
-      
-      results.push({
-        symbol,
-        updated,
-        candles: candleData,
-      });
     }
 
     // Return candles data along with results
@@ -147,15 +209,8 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error in fetch-bybit-candles:', error);
+    console.error('[Fetch Candles] Fatal error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const errorStack = error instanceof Error ? error.stack : undefined;
-    
-    console.error('Detailed error:', {
-      message: errorMessage,
-      stack: errorStack,
-      timestamp: new Date().toISOString(),
-    });
     
     return new Response(
       JSON.stringify({
