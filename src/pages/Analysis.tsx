@@ -7,6 +7,7 @@ import { useTradingStore } from '@/store/tradingStore';
 import { MultiTimeframePanel } from '@/components/MultiTimeframePanel';
 import { IndicatorsDashboard } from '@/components/IndicatorsDashboard';
 import { TimeframeMovementTracker } from '@/components/TimeframeMovementTracker';
+import { IndicatorsTester } from '@/components/IndicatorsTester';
 
 const ChartSection = lazy(() => import('@/components/ChartSection'));
 const AIAnalysis = lazy(() => import('@/components/AIAnalysis'));
@@ -55,6 +56,9 @@ const Analysis = () => {
               {/* Right Column - Movement Tracker */}
               <div className="space-y-6">
                 <TimeframeMovementTracker symbol={selectedSymbol} />
+                
+                {/* Indicators Tester */}
+                <IndicatorsTester />
                 
                 {/* Quick Stats */}
                 <div className="bg-card p-6 rounded-lg">

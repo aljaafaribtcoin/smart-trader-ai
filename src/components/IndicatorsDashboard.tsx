@@ -8,6 +8,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { ErrorState } from './common/ErrorState';
 import { errorLogger } from '@/lib/errorLogger';
+import { TechnicalIndicatorsCard } from './TechnicalIndicatorsCard';
 
 interface Indicator {
   name: string;
@@ -334,22 +335,26 @@ export const IndicatorsDashboard = ({ symbol, timeframe }: IndicatorsDashboardPr
   };
 
   return (
-    <Card className="p-4 sm:p-6">
-      <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center gap-2">
-        📈 لوحة المؤشرات الفنية
-      </h3>
+    <div className="space-y-4">
+      <TechnicalIndicatorsCard symbol={symbol} timeframe={timeframe} />
+      
+      <Card className="p-4 sm:p-6">
+        <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center gap-2">
+          📈 لوحة المؤشرات التفصيلية
+        </h3>
 
-      {renderIndicatorSection('مؤشرات الاتجاه', <TrendingUp className="w-4 h-4" />, groupedIndicators.trend)}
-      {renderIndicatorSection('مؤشرات الزخم', <Activity className="w-4 h-4" />, groupedIndicators.momentum)}
-      {renderIndicatorSection('مؤشرات التقلب', <BarChart3 className="w-4 h-4" />, groupedIndicators.volatility)}
-      {renderIndicatorSection('مؤشرات الحجم', <BarChart3 className="w-4 h-4" />, groupedIndicators.volume)}
+        {renderIndicatorSection('مؤشرات الاتجاه', <TrendingUp className="w-4 h-4" />, groupedIndicators.trend)}
+        {renderIndicatorSection('مؤشرات الزخم', <Activity className="w-4 h-4" />, groupedIndicators.momentum)}
+        {renderIndicatorSection('مؤشرات التقلب', <BarChart3 className="w-4 h-4" />, groupedIndicators.volatility)}
+        {renderIndicatorSection('مؤشرات الحجم', <BarChart3 className="w-4 h-4" />, groupedIndicators.volume)}
 
-      {indicators.length === 0 && (
-        <div className="text-center py-8 text-muted-foreground">
-          <Activity className="w-12 h-12 mx-auto mb-3 opacity-50" />
-          <p>لا توجد بيانات مؤشرات متاحة</p>
-        </div>
-      )}
-    </Card>
+        {indicators.length === 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            <Activity className="w-12 h-12 mx-auto mb-3 opacity-50" />
+            <p>لا توجد بيانات مؤشرات متاحة</p>
+          </div>
+        )}
+      </Card>
+    </div>
   );
 };
