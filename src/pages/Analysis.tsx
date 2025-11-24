@@ -8,6 +8,7 @@ import { MultiTimeframePanel } from '@/components/MultiTimeframePanel';
 import { IndicatorsDashboard } from '@/components/IndicatorsDashboard';
 import { TimeframeMovementTracker } from '@/components/TimeframeMovementTracker';
 import { IndicatorsTester } from '@/components/IndicatorsTester';
+import { PatternDetectorTester } from '@/components/PatternDetectorTester';
 
 const ChartSection = lazy(() => import('@/components/ChartSection'));
 const AIAnalysis = lazy(() => import('@/components/AIAnalysis'));
@@ -57,8 +58,11 @@ const Analysis = () => {
               <div className="space-y-6">
                 <TimeframeMovementTracker symbol={selectedSymbol} />
                 
-                {/* Indicators Tester */}
-                <IndicatorsTester />
+        {/* Indicators Tester */}
+        <IndicatorsTester />
+
+        {/* Pattern Detector Tester */}
+        <PatternDetectorTester />
                 
                 {/* Quick Stats */}
                 <div className="bg-card p-6 rounded-lg">
