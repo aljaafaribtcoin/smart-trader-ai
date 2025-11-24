@@ -56,6 +56,21 @@ Deno.serve(async (req) => {
       }
     }
 
+    console.log(`[detect-patterns] Detected ${detectedPatterns.length} patterns in total`);
+
+    // Update sync status
+    await supabaseClient
+      .from('data_sync_status')
+      .upsert({
+        data_type: 'patterns',
+        symbol: symbols.join(','),
+        timeframe: timeframes.join(','),
+        source: 'detect-patterns',
+        status: 'success',
+        last_sync_at: new Date().toISOString(),
+        metadata: { patterns_detected: detectedPatterns.length }
+      });
+
     // Save detected patterns to database
     if (detectedPatterns.length > 0) {
       const { data: insertedPatterns, error: insertError } = await supabaseClient
@@ -142,6 +157,23 @@ async function detectAllPatterns(candles: Candle[], symbol: string, timeframe: s
     });
   }
 
+  // Inverse Head and Shoulders
+  const invHeadShoulders = detectInverseHeadAndShoulders(candles);
+  if (invHeadShoulders) {
+    patterns.push({
+      symbol,
+      timeframe,
+      pattern_type: 'reversal',
+      pattern_name: 'Inverse Head and Shoulders',
+      confidence: invHeadShoulders.confidence,
+      detected_at: new Date().toISOString(),
+      status: 'active',
+      description: 'رأس وكتفين معكوس - إشارة انعكاس صاعدة قوية',
+      target_price: invHeadShoulders.target,
+      stop_loss: invHeadShoulders.stopLoss,
+    });
+  }
+
   // Double Top
   const doubleTop = detectDoubleTop(candles);
   if (doubleTop) {
@@ -173,6 +205,108 @@ async function detectAllPatterns(candles: Candle[], symbol: string, timeframe: s
       description: 'قاع مزدوج - إشارة انعكاس صاعدة',
       target_price: doubleBottom.target,
       stop_loss: doubleBottom.stopLoss,
+    });
+  }
+
+  // Ascending Triangle
+  const ascTriangle = detectAscendingTriangle(candles);
+  if (ascTriangle) {
+    patterns.push({
+      symbol,
+      timeframe,
+      pattern_type: 'continuation',
+      pattern_name: 'Ascending Triangle',
+      confidence: ascTriangle.confidence,
+      detected_at: new Date().toISOString(),
+      status: 'active',
+      description: 'مثلث صاعد - إشارة اختراق صاعد محتملة',
+      target_price: ascTriangle.target,
+      stop_loss: ascTriangle.stopLoss,
+    });
+  }
+
+  // Descending Triangle
+  const descTriangle = detectDescendingTriangle(candles);
+  if (descTriangle) {
+    patterns.push({
+      symbol,
+      timeframe,
+      pattern_type: 'continuation',
+      pattern_name: 'Descending Triangle',
+      confidence: descTriangle.confidence,
+      detected_at: new Date().toISOString(),
+      status: 'active',
+      description: 'مثلث هابط - إشارة كسر هابط محتملة',
+      target_price: descTriangle.target,
+      stop_loss: descTriangle.stopLoss,
+    });
+  }
+
+  // Symmetrical Triangle
+  const symTriangle = detectSymmetricalTriangle(candles);
+  if (symTriangle) {
+    patterns.push({
+      symbol,
+      timeframe,
+      pattern_type: 'continuation',
+      pattern_name: 'Symmetrical Triangle',
+      confidence: symTriangle.confidence,
+      detected_at: new Date().toISOString(),
+      status: 'active',
+      description: 'مثلث متماثل - إشارة اختراق في اتجاه الترند',
+      target_price: symTriangle.target,
+      stop_loss: symTriangle.stopLoss,
+    });
+  }
+
+  // Rising Wedge
+  const risingWedge = detectRisingWedge(candles);
+  if (risingWedge) {
+    patterns.push({
+      symbol,
+      timeframe,
+      pattern_type: 'reversal',
+      pattern_name: 'Rising Wedge',
+      confidence: risingWedge.confidence,
+      detected_at: new Date().toISOString(),
+      status: 'active',
+      description: 'إسفين صاعد - إشارة انعكاس هابط محتملة',
+      target_price: risingWedge.target,
+      stop_loss: risingWedge.stopLoss,
+    });
+  }
+
+  // Falling Wedge
+  const fallingWedge = detectFallingWedge(candles);
+  if (fallingWedge) {
+    patterns.push({
+      symbol,
+      timeframe,
+      pattern_type: 'reversal',
+      pattern_name: 'Falling Wedge',
+      confidence: fallingWedge.confidence,
+      detected_at: new Date().toISOString(),
+      status: 'active',
+      description: 'إسفين هابط - إشارة انعكاس صاعد محتملة',
+      target_price: fallingWedge.target,
+      stop_loss: fallingWedge.stopLoss,
+    });
+  }
+
+  // Cup and Handle
+  const cupHandle = detectCupAndHandle(candles);
+  if (cupHandle) {
+    patterns.push({
+      symbol,
+      timeframe,
+      pattern_type: 'continuation',
+      pattern_name: 'Cup and Handle',
+      confidence: cupHandle.confidence,
+      detected_at: new Date().toISOString(),
+      status: 'active',
+      description: 'كوب ومقبض - إشارة صاعدة قوية',
+      target_price: cupHandle.target,
+      stop_loss: cupHandle.stopLoss,
     });
   }
 
@@ -358,6 +492,250 @@ function detectBearFlag(candles: Candle[]) {
   }
 
   return null;
+}
+
+function detectInverseHeadAndShoulders(candles: Candle[]) {
+  if (candles.length < 50) return null;
+
+  const lows = candles.map(c => c.low);
+  const troughs = findTroughs(lows);
+
+  if (troughs.length < 3) return null;
+
+  for (let i = 1; i < troughs.length - 1; i++) {
+    const leftShoulder = lows[troughs[i - 1]];
+    const head = lows[troughs[i]];
+    const rightShoulder = lows[troughs[i + 1]];
+
+    if (head < leftShoulder && head < rightShoulder) {
+      const shoulderDiff = Math.abs(leftShoulder - rightShoulder) / leftShoulder;
+      
+      if (shoulderDiff < 0.02) {
+        const neckline = Math.max(leftShoulder, rightShoulder);
+        const target = neckline + (neckline - head);
+        
+        return {
+          confidence: 78,
+          target,
+          stopLoss: head * 0.98,
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+function detectAscendingTriangle(candles: Candle[]) {
+  if (candles.length < 40) return null;
+
+  const highs = candles.map(c => c.high);
+  const lows = candles.map(c => c.low);
+  
+  // Find horizontal resistance
+  const recentHighs = highs.slice(0, 20);
+  const maxHigh = Math.max(...recentHighs);
+  const highsNearResistance = recentHighs.filter(h => Math.abs(h - maxHigh) / maxHigh < 0.015);
+  
+  if (highsNearResistance.length < 2) return null;
+
+  // Check for rising lows
+  const recentLows = lows.slice(0, 20);
+  let risingLowsCount = 0;
+  for (let i = 1; i < Math.min(recentLows.length, 10); i++) {
+    if (recentLows[i - 1] < recentLows[i]) risingLowsCount++;
+  }
+
+  if (risingLowsCount >= 4) {
+    const triangleHeight = maxHigh - Math.min(...recentLows);
+    const target = maxHigh + triangleHeight;
+    
+    return {
+      confidence: 72,
+      target,
+      stopLoss: Math.min(...recentLows) * 0.98,
+    };
+  }
+
+  return null;
+}
+
+function detectDescendingTriangle(candles: Candle[]) {
+  if (candles.length < 40) return null;
+
+  const highs = candles.map(c => c.high);
+  const lows = candles.map(c => c.low);
+  
+  // Find horizontal support
+  const recentLows = lows.slice(0, 20);
+  const minLow = Math.min(...recentLows);
+  const lowsNearSupport = recentLows.filter(l => Math.abs(l - minLow) / minLow < 0.015);
+  
+  if (lowsNearSupport.length < 2) return null;
+
+  // Check for falling highs
+  const recentHighs = highs.slice(0, 20);
+  let fallingHighsCount = 0;
+  for (let i = 1; i < Math.min(recentHighs.length, 10); i++) {
+    if (recentHighs[i - 1] > recentHighs[i]) fallingHighsCount++;
+  }
+
+  if (fallingHighsCount >= 4) {
+    const triangleHeight = Math.max(...recentHighs) - minLow;
+    const target = minLow - triangleHeight;
+    
+    return {
+      confidence: 72,
+      target,
+      stopLoss: Math.max(...recentHighs) * 1.02,
+    };
+  }
+
+  return null;
+}
+
+function detectSymmetricalTriangle(candles: Candle[]) {
+  if (candles.length < 40) return null;
+
+  const highs = candles.map(c => c.high);
+  const lows = candles.map(c => c.low);
+  
+  const recentHighs = highs.slice(0, 20);
+  const recentLows = lows.slice(0, 20);
+
+  // Check for converging highs and lows
+  let fallingHighsCount = 0;
+  let risingLowsCount = 0;
+
+  for (let i = 1; i < 10; i++) {
+    if (recentHighs[i - 1] > recentHighs[i]) fallingHighsCount++;
+    if (recentLows[i - 1] < recentLows[i]) risingLowsCount++;
+  }
+
+  if (fallingHighsCount >= 4 && risingLowsCount >= 4) {
+    const avgHigh = recentHighs.reduce((a, b) => a + b, 0) / recentHighs.length;
+    const avgLow = recentLows.reduce((a, b) => a + b, 0) / recentLows.length;
+    const triangleHeight = avgHigh - avgLow;
+    
+    // Breakout direction based on recent momentum
+    const lastClose = candles[0].close;
+    const avgPrice = (avgHigh + avgLow) / 2;
+    const target = lastClose > avgPrice 
+      ? avgHigh + triangleHeight 
+      : avgLow - triangleHeight;
+    
+    return {
+      confidence: 68,
+      target,
+      stopLoss: lastClose > avgPrice ? avgLow * 0.98 : avgHigh * 1.02,
+    };
+  }
+
+  return null;
+}
+
+function detectRisingWedge(candles: Candle[]) {
+  if (candles.length < 40) return null;
+
+  const highs = candles.map(c => c.high);
+  const lows = candles.map(c => c.low);
+  
+  const recentHighs = highs.slice(0, 20);
+  const recentLows = lows.slice(0, 20);
+
+  // Both highs and lows should be rising
+  let risingHighsCount = 0;
+  let risingLowsCount = 0;
+
+  for (let i = 1; i < 10; i++) {
+    if (recentHighs[i - 1] < recentHighs[i]) risingHighsCount++;
+    if (recentLows[i - 1] < recentLows[i]) risingLowsCount++;
+  }
+
+  // But highs rising slower (converging)
+  const highSlope = (recentHighs[0] - recentHighs[9]) / 9;
+  const lowSlope = (recentLows[0] - recentLows[9]) / 9;
+
+  if (risingHighsCount >= 5 && risingLowsCount >= 6 && lowSlope > highSlope * 1.3) {
+    const wedgeHeight = Math.max(...recentHighs) - Math.min(...recentLows);
+    const target = Math.min(...recentLows) - wedgeHeight;
+    
+    return {
+      confidence: 70,
+      target,
+      stopLoss: Math.max(...recentHighs) * 1.02,
+    };
+  }
+
+  return null;
+}
+
+function detectFallingWedge(candles: Candle[]) {
+  if (candles.length < 40) return null;
+
+  const highs = candles.map(c => c.high);
+  const lows = candles.map(c => c.low);
+  
+  const recentHighs = highs.slice(0, 20);
+  const recentLows = lows.slice(0, 20);
+
+  // Both highs and lows should be falling
+  let fallingHighsCount = 0;
+  let fallingLowsCount = 0;
+
+  for (let i = 1; i < 10; i++) {
+    if (recentHighs[i - 1] > recentHighs[i]) fallingHighsCount++;
+    if (recentLows[i - 1] > recentLows[i]) fallingLowsCount++;
+  }
+
+  // But lows falling slower (converging)
+  const highSlope = Math.abs(recentHighs[0] - recentHighs[9]) / 9;
+  const lowSlope = Math.abs(recentLows[0] - recentLows[9]) / 9;
+
+  if (fallingHighsCount >= 6 && fallingLowsCount >= 5 && highSlope > lowSlope * 1.3) {
+    const wedgeHeight = Math.max(...recentHighs) - Math.min(...recentLows);
+    const target = Math.max(...recentHighs) + wedgeHeight;
+    
+    return {
+      confidence: 70,
+      target,
+      stopLoss: Math.min(...recentLows) * 0.98,
+    };
+  }
+
+  return null;
+}
+
+function detectCupAndHandle(candles: Candle[]) {
+  if (candles.length < 60) return null;
+
+  const lows = candles.map(c => c.low);
+  const highs = candles.map(c => c.high);
+  
+  // Find cup formation (U-shape in lows)
+  const cupLows = lows.slice(20, 50);
+  const cupBottom = Math.min(...cupLows);
+  const cupTop = Math.max(lows[20], lows[50]);
+  
+  // Check for cup shape - bottom should be significantly lower
+  if (cupTop - cupBottom < cupTop * 0.1) return null;
+
+  // Check for handle (recent consolidation)
+  const handleCandles = candles.slice(0, 15);
+  const handleRange = Math.max(...handleCandles.map(c => c.high)) - 
+                      Math.min(...handleCandles.map(c => c.low));
+  const handleRelativeRange = handleRange / cupBottom;
+  
+  if (handleRelativeRange > 0.05 || handleRelativeRange < 0.01) return null;
+
+  const cupDepth = cupTop - cupBottom;
+  const target = cupTop + cupDepth;
+  
+  return {
+    confidence: 75,
+    target,
+    stopLoss: Math.min(...handleCandles.map(c => c.low)) * 0.98,
+  };
 }
 
 // Helper functions
