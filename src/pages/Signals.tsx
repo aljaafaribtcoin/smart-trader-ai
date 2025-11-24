@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SignalCard } from '@/components/SignalCard';
+import { SignalGenerator } from '@/components/SignalGenerator';
 import { LoadingSkeleton } from '@/components/common/LoadingSkeleton';
 import { EmptyState } from '@/components/common/EmptyState';
 import Header from '@/components/Header';
@@ -148,6 +149,9 @@ const Signals = () => {
             </div>
           </Card>
         </div>
+
+        {/* Signal Generator */}
+        <SignalGenerator />
 
         {/* Signals Grid */}
         {isLoading ? (

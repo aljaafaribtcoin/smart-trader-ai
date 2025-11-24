@@ -15,6 +15,9 @@ verify_jwt = false
 [functions.detect-patterns]
 verify_jwt = false
 
+[functions.generate-trading-signals]
+verify_jwt = false
+
 [functions.chat-ai]
 verify_jwt = true
 

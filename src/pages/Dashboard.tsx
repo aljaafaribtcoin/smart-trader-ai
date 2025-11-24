@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Header from "@/components/Header";
+import RecentSignals from "@/components/RecentSignals";
 import { useTrades } from "@/hooks/api/useTrades";
 import { usePatterns } from "@/hooks/api/usePatterns";
 import { useAccount } from "@/hooks/api/useAccount";
@@ -258,38 +259,44 @@ const Dashboard = () => {
         </div>
 
         {/* Recent Activity */}
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Activity className="h-5 w-5 text-primary" />
-            النشاط الأخير
-          </h3>
-          <div className="space-y-3">
-            {closedTrades.slice(0, 5).map((trade) => (
-              <div 
-                key={trade.id}
-                className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${(trade.pnl || 0) >= 0 ? 'bg-success' : 'bg-destructive'}`} />
-                  <div>
-                    <p className="font-medium">{trade.symbol}</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Signals */}
+          <RecentSignals />
+
+          {/* Recent Activity */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Activity className="h-5 w-5 text-primary" />
+              النشاط الأخير
+            </h3>
+            <div className="space-y-3">
+              {closedTrades.slice(0, 5).map((trade) => (
+                <div 
+                  key={trade.id}
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-2 h-2 rounded-full ${(trade.pnl || 0) >= 0 ? 'bg-success' : 'bg-destructive'}`} />
+                    <div>
+                      <p className="font-medium">{trade.symbol}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {trade.type === 'long' ? 'شراء' : 'بيع'} • {new Date(trade.created_at).toLocaleDateString('ar')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={`font-bold ${(trade.pnl || 0) >= 0 ? 'text-success' : 'text-destructive'}`}>
+                      {(trade.pnl || 0) >= 0 ? '+' : ''}{(trade.pnl || 0).toFixed(2)} USDT
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                      {trade.type === 'long' ? 'شراء' : 'بيع'} • {new Date(trade.created_at).toLocaleDateString('ar')}
+                      {(trade.pnl_percentage || 0).toFixed(2)}%
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className={`font-bold ${(trade.pnl || 0) >= 0 ? 'text-success' : 'text-destructive'}`}>
-                    {(trade.pnl || 0) >= 0 ? '+' : ''}{(trade.pnl || 0).toFixed(2)} USDT
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {(trade.pnl_percentage || 0).toFixed(2)}%
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
+              ))}
+            </div>
+          </Card>
+        </div>
       </div>
     </div>
     </>
