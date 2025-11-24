@@ -9,6 +9,7 @@ import { IndicatorsDashboard } from '@/components/IndicatorsDashboard';
 import { TimeframeMovementTracker } from '@/components/TimeframeMovementTracker';
 import { IndicatorsTester } from '@/components/IndicatorsTester';
 import { PatternDetectorTester } from '@/components/PatternDetectorTester';
+import { SignalGeneratorTester } from '@/components/SignalGeneratorTester';
 
 const ChartSection = lazy(() => import('@/components/ChartSection'));
 const AIAnalysis = lazy(() => import('@/components/AIAnalysis'));
@@ -63,6 +64,9 @@ const Analysis = () => {
 
         {/* Pattern Detector Tester */}
         <PatternDetectorTester />
+
+        {/* Signal Generator Tester */}
+        <SignalGeneratorTester />
                 
                 {/* Quick Stats */}
                 <div className="bg-card p-6 rounded-lg">
