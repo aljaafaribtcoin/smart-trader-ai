@@ -1,5 +1,8 @@
 project_id = "eyxqdgosabtgizwsrsiq"
 
+[functions.scheduler-orchestrator]
+verify_jwt = false
+
 [functions.fetch-livecoinwatch-prices]
 verify_jwt = false
 
