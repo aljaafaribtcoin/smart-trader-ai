@@ -34,7 +34,9 @@ export const useTechnicalIndicators = (symbol: string, timeframe: string) => {
       if (error && error.code !== 'PGRST116') throw error;
       return data as TechnicalIndicator | null;
     },
-    refetchInterval: 30000, // Refetch every 30 seconds
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000,   // 10 minutes
+    refetchInterval: false,    // Disable auto-refetch, rely on scheduler
   });
 };
 

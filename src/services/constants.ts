@@ -60,7 +60,8 @@ export const CACHE_KEYS = {
 } as const;
 
 export const CACHE_TIMES = {
-  SHORT: 30 * 1000, // 30 seconds
-  MEDIUM: 5 * 60 * 1000, // 5 minutes
-  LONG: 30 * 60 * 1000, // 30 minutes
+  SHORT: 2 * 60 * 1000,      // 2 minutes
+  MEDIUM: 5 * 60 * 1000,     // 5 minutes
+  LONG: 10 * 60 * 1000,      // 10 minutes
+  VERY_LONG: 30 * 60 * 1000, // 30 minutes
 } as const;

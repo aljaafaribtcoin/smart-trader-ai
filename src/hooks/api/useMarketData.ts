@@ -13,8 +13,9 @@ export const useMarketData = (symbol: string, timeframe: string) => {
       if (response.error) throw new Error(response.error.message);
       return response.data;
     },
-    staleTime: CACHE_TIMES.SHORT,
-    refetchInterval: 5000,
+    staleTime: CACHE_TIMES.MEDIUM,
+    gcTime: CACHE_TIMES.LONG,
+    refetchInterval: false, // عطل التحديث التلقائي، سيتم عبر Scheduler
   });
 };
 
@@ -29,7 +30,8 @@ export const useTrendAnalysis = (symbol: string) => {
       if (response.error) throw new Error(response.error.message);
       return response.data || [];
     },
-    staleTime: CACHE_TIMES.MEDIUM,
+    staleTime: CACHE_TIMES.LONG,
+    gcTime: CACHE_TIMES.VERY_LONG,
   });
 };
 
@@ -44,7 +46,8 @@ export const useVolumeAnalysis = (symbol: string) => {
       if (response.error) throw new Error(response.error.message);
       return response.data;
     },
-    staleTime: CACHE_TIMES.MEDIUM,
+    staleTime: CACHE_TIMES.LONG,
+    gcTime: CACHE_TIMES.VERY_LONG,
   });
 };
 
@@ -59,7 +62,8 @@ export const useMomentumIndicators = (symbol: string, timeframe: string) => {
       if (response.error) throw new Error(response.error.message);
       return response.data;
     },
-    staleTime: CACHE_TIMES.SHORT,
-    refetchInterval: 10000,
+    staleTime: CACHE_TIMES.MEDIUM,
+    gcTime: CACHE_TIMES.LONG,
+    refetchInterval: false,
   });
 };

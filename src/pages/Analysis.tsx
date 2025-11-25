@@ -11,13 +11,25 @@ import { IndicatorsTester } from '@/components/IndicatorsTester';
 import { PatternDetectorTester } from '@/components/PatternDetectorTester';
 import { SignalGeneratorTester } from '@/components/SignalGeneratorTester';
 import { CronScheduler } from '@/components/CronScheduler';
+import { MaterializedViewsManager } from '@/components/MaterializedViewsManager';
+import { PerformanceMonitor } from '@/components/PerformanceMonitor';
+import { PerformanceSettings } from '@/components/PerformanceSettings';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useOptimizedCache } from '@/hooks/useOptimizedCache';
 
 const ChartSection = lazy(() => import('@/components/ChartSection'));
 const AIAnalysis = lazy(() => import('@/components/AIAnalysis'));
 
 const Analysis = () => {
   const { selectedSymbol, selectedTimeframe } = useTradingStore();
+  const { prefetchCommonData } = useOptimizedCache();
+
+  // Prefetch data للرمز المحدد
+  useTradingStore.subscribe((state) => {
+    if (state.selectedSymbol) {
+      prefetchCommonData(state.selectedSymbol);
+    }
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -80,11 +92,13 @@ const Analysis = () => {
 
             {/* Testing & Scheduler Section */}
             <Tabs defaultValue="indicators" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="indicators">Indicators Test</TabsTrigger>
-                <TabsTrigger value="patterns">Patterns Test</TabsTrigger>
-                <TabsTrigger value="signals">Signals Test</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-6">
+                <TabsTrigger value="indicators">Indicators</TabsTrigger>
+                <TabsTrigger value="patterns">Patterns</TabsTrigger>
+                <TabsTrigger value="signals">Signals</TabsTrigger>
                 <TabsTrigger value="scheduler">Scheduler</TabsTrigger>
+                <TabsTrigger value="views">Views</TabsTrigger>
+                <TabsTrigger value="performance">Performance</TabsTrigger>
               </TabsList>
               
               <TabsContent value="indicators" className="space-y-4 mt-6">
@@ -101,6 +115,17 @@ const Analysis = () => {
               
               <TabsContent value="scheduler" className="space-y-4 mt-6">
                 <CronScheduler />
+              </TabsContent>
+              
+              <TabsContent value="views" className="space-y-4 mt-6">
+                <MaterializedViewsManager />
+              </TabsContent>
+              
+              <TabsContent value="performance" className="space-y-4 mt-6">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <PerformanceMonitor />
+                  <PerformanceSettings />
+                </div>
               </TabsContent>
             </Tabs>
           </div>

@@ -60,7 +60,8 @@ export const usePatterns = (filters?: PatternsFilters) => {
       if (error) throw error;
       return data as Pattern[] || [];
     },
-    staleTime: CACHE_TIMES.SHORT,
+    staleTime: CACHE_TIMES.MEDIUM,
+    gcTime: CACHE_TIMES.LONG,
     enabled: !!user,
   });
 };
