@@ -10,6 +10,8 @@ import { TimeframeMovementTracker } from '@/components/TimeframeMovementTracker'
 import { IndicatorsTester } from '@/components/IndicatorsTester';
 import { PatternDetectorTester } from '@/components/PatternDetectorTester';
 import { SignalGeneratorTester } from '@/components/SignalGeneratorTester';
+import { CronScheduler } from '@/components/CronScheduler';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const ChartSection = lazy(() => import('@/components/ChartSection'));
 const AIAnalysis = lazy(() => import('@/components/AIAnalysis'));
@@ -59,15 +61,6 @@ const Analysis = () => {
               <div className="space-y-6">
                 <TimeframeMovementTracker symbol={selectedSymbol} />
                 
-        {/* Indicators Tester */}
-        <IndicatorsTester />
-
-        {/* Pattern Detector Tester */}
-        <PatternDetectorTester />
-
-        {/* Signal Generator Tester */}
-        <SignalGeneratorTester />
-                
                 {/* Quick Stats */}
                 <div className="bg-card p-6 rounded-lg">
                   <h3 className="font-bold mb-4">إحصائيات سريعة</h3>
@@ -84,6 +77,32 @@ const Analysis = () => {
                 </div>
               </div>
             </div>
+
+            {/* Testing & Scheduler Section */}
+            <Tabs defaultValue="indicators" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="indicators">Indicators Test</TabsTrigger>
+                <TabsTrigger value="patterns">Patterns Test</TabsTrigger>
+                <TabsTrigger value="signals">Signals Test</TabsTrigger>
+                <TabsTrigger value="scheduler">Scheduler</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="indicators" className="space-y-4 mt-6">
+                <IndicatorsTester />
+              </TabsContent>
+              
+              <TabsContent value="patterns" className="space-y-4 mt-6">
+                <PatternDetectorTester />
+              </TabsContent>
+              
+              <TabsContent value="signals" className="space-y-4 mt-6">
+                <SignalGeneratorTester />
+              </TabsContent>
+              
+              <TabsContent value="scheduler" className="space-y-4 mt-6">
+                <CronScheduler />
+              </TabsContent>
+            </Tabs>
           </div>
         </main>
       </div>
