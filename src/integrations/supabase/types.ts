@@ -777,10 +777,85 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      active_patterns_with_signals: {
+        Row: {
+          current_price: number | null
+          detected_at: string | null
+          direction: string | null
+          entry_from: number | null
+          entry_to: number | null
+          main_scenario: string | null
+          pattern_confidence: number | null
+          pattern_id: string | null
+          pattern_name: string | null
+          pattern_stop_loss: number | null
+          pattern_target: number | null
+          pattern_type: string | null
+          risk_reward: number | null
+          signal_confidence: number | null
+          signal_created_at: string | null
+          signal_id: string | null
+          signal_stop_loss: number | null
+          symbol: string | null
+          timeframe: string | null
+          tp1: number | null
+          tp2: number | null
+          tp3: number | null
+        }
+        Relationships: []
+      }
+      latest_market_data: {
+        Row: {
+          atr: number | null
+          bb_lower: number | null
+          bb_middle: number | null
+          bb_upper: number | null
+          change_24h: number | null
+          close: number | null
+          current_price: number | null
+          ema_20: number | null
+          ema_200: number | null
+          ema_50: number | null
+          high: number | null
+          low: number | null
+          macd_histogram: number | null
+          macd_signal: number | null
+          macd_value: number | null
+          open: number | null
+          rsi: number | null
+          stochastic_d: number | null
+          stochastic_k: number | null
+          symbol: string | null
+          timeframe: string | null
+          timestamp: string | null
+          volume: number | null
+          volume_24h: number | null
+        }
+        Relationships: []
+      }
+      market_summary: {
+        Row: {
+          active_patterns_count: number | null
+          active_signals_count: number | null
+          change_24h: number | null
+          change_7d: number | null
+          last_sync_at: string | null
+          last_updated: string | null
+          macd_histogram_1h: number | null
+          market_cap: number | null
+          name: string | null
+          price: number | null
+          rank: number | null
+          rsi_1h: number | null
+          symbol: string | null
+          sync_status: string | null
+          volume_24h: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      refresh_materialized_views: { Args: never; Returns: undefined }
     }
     Enums: {
       message_role: "user" | "assistant" | "system"
