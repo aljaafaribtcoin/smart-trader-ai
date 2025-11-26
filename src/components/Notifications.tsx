@@ -12,6 +12,8 @@ import { Notification, NotificationType } from '@/types/notification';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { NotificationSettings } from './NotificationSettings';
+import { useNavigate } from 'react-router-dom';
 
 const notificationTypeColors: Record<NotificationType, string> = {
   info: 'bg-secondary/20 text-secondary',
@@ -40,12 +42,24 @@ interface NotificationItemProps {
 }
 
 const NotificationItem = ({ notification, onMarkAsRead, onDelete }: NotificationItemProps) => {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    if (!notification.read) {
+      onMarkAsRead(notification.id);
+    }
+    if (notification.action_url) {
+      navigate(notification.action_url);
+    }
+  };
+
   return (
     <div
       className={cn(
-        'group p-3 border-b border-border last:border-0 transition-colors hover:bg-muted/30',
+        'group p-3 border-b border-border last:border-0 transition-colors hover:bg-muted/30 cursor-pointer',
         !notification.read && 'bg-primary/5'
       )}
+      onClick={handleClick}
     >
       <div className="flex items-start gap-3">
         <div className="flex-1 space-y-1">
@@ -123,6 +137,7 @@ export const Notifications = () => {
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h3 className="font-semibold text-sm">التنبيهات</h3>
           <div className="flex items-center gap-2">
+            <NotificationSettings />
             {unreadCount > 0 && (
               <Button
                 variant="ghost"

@@ -449,6 +449,7 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          notification_preferences: Json | null
           preferred_language: string | null
           trading_preferences: Json | null
           updated_at: string
@@ -458,6 +459,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
+          notification_preferences?: Json | null
           preferred_language?: string | null
           trading_preferences?: Json | null
           updated_at?: string
@@ -467,6 +469,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          notification_preferences?: Json | null
           preferred_language?: string | null
           trading_preferences?: Json | null
           updated_at?: string
