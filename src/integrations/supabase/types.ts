@@ -104,6 +104,194 @@ export type Database = {
         }
         Relationships: []
       }
+      backtest_trades: {
+        Row: {
+          confidence: number | null
+          created_at: string | null
+          direction: string
+          entry_price: number
+          entry_time: string
+          exit_price: number | null
+          exit_reason: string | null
+          exit_time: string | null
+          id: string
+          pattern_id: string | null
+          position_size: number
+          profit_loss: number | null
+          profit_loss_percentage: number | null
+          risk_amount: number
+          run_id: string
+          signal_id: string | null
+          status: string
+          stop_loss: number
+          symbol: string
+          take_profit_1: number | null
+          take_profit_2: number | null
+          take_profit_3: number | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string | null
+          direction: string
+          entry_price: number
+          entry_time: string
+          exit_price?: number | null
+          exit_reason?: string | null
+          exit_time?: string | null
+          id?: string
+          pattern_id?: string | null
+          position_size: number
+          profit_loss?: number | null
+          profit_loss_percentage?: number | null
+          risk_amount: number
+          run_id: string
+          signal_id?: string | null
+          status?: string
+          stop_loss: number
+          symbol: string
+          take_profit_1?: number | null
+          take_profit_2?: number | null
+          take_profit_3?: number | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string | null
+          direction?: string
+          entry_price?: number
+          entry_time?: string
+          exit_price?: number | null
+          exit_reason?: string | null
+          exit_time?: string | null
+          id?: string
+          pattern_id?: string | null
+          position_size?: number
+          profit_loss?: number | null
+          profit_loss_percentage?: number | null
+          risk_amount?: number
+          run_id?: string
+          signal_id?: string | null
+          status?: string
+          stop_loss?: number
+          symbol?: string
+          take_profit_1?: number | null
+          take_profit_2?: number | null
+          take_profit_3?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backtest_trades_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "backtesting_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      backtesting_runs: {
+        Row: {
+          average_loss: number | null
+          average_profit: number | null
+          completed_at: string | null
+          created_at: string | null
+          end_date: string
+          error_message: string | null
+          execution_time_ms: number | null
+          id: string
+          initial_capital: number | null
+          largest_loss: number | null
+          largest_profit: number | null
+          losing_trades: number | null
+          max_drawdown: number | null
+          max_drawdown_percentage: number | null
+          max_trades_per_day: number | null
+          name: string
+          net_profit: number | null
+          net_profit_percentage: number | null
+          profit_factor: number | null
+          risk_per_trade: number | null
+          sharpe_ratio: number | null
+          start_date: string
+          status: string
+          strategy_type: string
+          symbol: string
+          timeframe: string
+          total_loss: number | null
+          total_profit: number | null
+          total_trades: number | null
+          user_id: string
+          win_rate: number | null
+          winning_trades: number | null
+        }
+        Insert: {
+          average_loss?: number | null
+          average_profit?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          end_date: string
+          error_message?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          initial_capital?: number | null
+          largest_loss?: number | null
+          largest_profit?: number | null
+          losing_trades?: number | null
+          max_drawdown?: number | null
+          max_drawdown_percentage?: number | null
+          max_trades_per_day?: number | null
+          name: string
+          net_profit?: number | null
+          net_profit_percentage?: number | null
+          profit_factor?: number | null
+          risk_per_trade?: number | null
+          sharpe_ratio?: number | null
+          start_date: string
+          status?: string
+          strategy_type: string
+          symbol: string
+          timeframe: string
+          total_loss?: number | null
+          total_profit?: number | null
+          total_trades?: number | null
+          user_id: string
+          win_rate?: number | null
+          winning_trades?: number | null
+        }
+        Update: {
+          average_loss?: number | null
+          average_profit?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          end_date?: string
+          error_message?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          initial_capital?: number | null
+          largest_loss?: number | null
+          largest_profit?: number | null
+          losing_trades?: number | null
+          max_drawdown?: number | null
+          max_drawdown_percentage?: number | null
+          max_trades_per_day?: number | null
+          name?: string
+          net_profit?: number | null
+          net_profit_percentage?: number | null
+          profit_factor?: number | null
+          risk_per_trade?: number | null
+          sharpe_ratio?: number | null
+          start_date?: string
+          status?: string
+          strategy_type?: string
+          symbol?: string
+          timeframe?: string
+          total_loss?: number | null
+          total_profit?: number | null
+          total_trades?: number | null
+          user_id?: string
+          win_rate?: number | null
+          winning_trades?: number | null
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           content: string
@@ -804,6 +992,22 @@ export type Database = {
           tp1: number | null
           tp2: number | null
           tp3: number | null
+        }
+        Relationships: []
+      }
+      backtest_statistics: {
+        Row: {
+          avg_max_drawdown: number | null
+          avg_profit_factor: number | null
+          avg_return: number | null
+          avg_win_rate: number | null
+          best_return: number | null
+          strategy_type: string | null
+          symbol: string | null
+          timeframe: string | null
+          total_runs: number | null
+          total_trades_all_runs: number | null
+          worst_return: number | null
         }
         Relationships: []
       }

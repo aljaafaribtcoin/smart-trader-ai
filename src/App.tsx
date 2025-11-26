@@ -11,6 +11,7 @@ import Patterns from "./pages/Patterns";
 import Dashboard from "./pages/Dashboard";
 import Signals from "./pages/Signals";
 import Analysis from "./pages/Analysis";
+import Backtesting from "./pages/Backtesting";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { useAuth } from "./hooks/useAuth";
@@ -108,6 +109,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Analysis />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/backtesting"
+              element={
+                <ProtectedRoute>
+                  <Backtesting />
                 </ProtectedRoute>
               }
             />
