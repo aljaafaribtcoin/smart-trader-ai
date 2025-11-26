@@ -101,6 +101,13 @@ const Header = () => {
           >
             ✨ الأنماط
           </NavLink>
+          <NavLink 
+            to="/backtesting"
+            className="px-3 py-1.5 rounded-lg text-sm transition-colors hover:bg-muted"
+            activeClassName="bg-primary text-primary-foreground hover:bg-primary"
+          >
+            🧪 Backtesting
+          </NavLink>
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
@@ -187,6 +194,14 @@ const Header = () => {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   ✨ الأنماط
+                </NavLink>
+                <NavLink 
+                  to="/backtesting"
+                  className="px-4 py-3 rounded-lg text-sm transition-colors hover:bg-muted"
+                  activeClassName="bg-primary text-primary-foreground hover:bg-primary"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  🧪 Backtesting
                 </NavLink>
 
                 <div className="border-t border-border pt-4 mt-4 space-y-3">
