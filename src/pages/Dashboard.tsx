@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Header from "@/components/Header";
 import RecentSignals from "@/components/RecentSignals";
+import { ExecutiveDashboard } from '@/components/ExecutiveDashboard';
 import { useTrades } from "@/hooks/api/useTrades";
 import { usePatterns } from "@/hooks/api/usePatterns";
 import { useAccount } from "@/hooks/api/useAccount";
@@ -13,11 +16,13 @@ import {
   Percent,
   Activity,
   BarChart3,
-  PieChart
+  PieChart,
+  LayoutDashboard
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 const Dashboard = () => {
+  const [activeTab, setActiveTab] = useState('overview');
   const { data: openTrades = [] } = useTrades('open');
   const { data: closedTrades = [] } = useTrades('closed');
   const { data: patterns = [] } = usePatterns();
@@ -134,6 +139,21 @@ const Dashboard = () => {
               {account ? `${account.balance.toFixed(2)} USDT` : 'جاري التحميل...'}
             </Badge>
           </div>
+
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="overview" className="gap-2">
+                <Activity className="h-4 w-4" />
+                نظرة عامة
+              </TabsTrigger>
+              <TabsTrigger value="executive" className="gap-2">
+                <LayoutDashboard className="h-4 w-4" />
+                لوحة التحكم التنفيذية
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="space-y-6">
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -296,7 +316,13 @@ const Dashboard = () => {
               ))}
             </div>
           </Card>
-        </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="executive" className="space-y-6">
+            <ExecutiveDashboard />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
     </>
