@@ -1,8 +1,10 @@
+import { useState, useMemo } from 'react';
 import { TrendingUp, TrendingDown, Activity, Target, DollarSign, Percent } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { useBacktestStatistics, useBacktestOverview } from '@/hooks/api/useBacktestStatistics';
+import { useBacktestStatistics, useBacktestOverview, BacktestFilters } from '@/hooks/api/useBacktestStatistics';
 import { useBacktestRuns } from '@/hooks/api/useBacktesting';
+import { ExecutiveDashboardFilters, DashboardFilters } from './ExecutiveDashboardFilters';
 import { LoadingSkeleton } from './common/LoadingSkeleton';
 import { EmptyState } from './common/EmptyState';
 import { cn } from '@/lib/utils';
@@ -23,9 +25,54 @@ import {
 } from 'recharts';
 
 export const ExecutiveDashboard = () => {
+  const [filters, setFilters] = useState<DashboardFilters>({
+    startDate: undefined,
+    endDate: undefined,
+    strategy: '',
+    symbol: '',
+    timeframe: '',
+  });
+
+  const backtestFilters: BacktestFilters = useMemo(() => ({
+    startDate: filters.startDate,
+    endDate: filters.endDate,
+    strategy: filters.strategy || undefined,
+    symbol: filters.symbol || undefined,
+    timeframe: filters.timeframe || undefined,
+  }), [filters]);
+
   const { data: statistics, isLoading: statsLoading } = useBacktestStatistics();
-  const { data: overview, isLoading: overviewLoading } = useBacktestOverview();
-  const { data: runs, isLoading: runsLoading } = useBacktestRuns();
+  const { data: overview, isLoading: overviewLoading } = useBacktestOverview(backtestFilters);
+  const { data: allRuns, isLoading: runsLoading } = useBacktestRuns();
+
+  // Apply filters to runs and statistics
+  const runs = useMemo(() => {
+    if (!allRuns) return [];
+    
+    return allRuns.filter(run => {
+      if (run.status !== 'completed') return false;
+      
+      if (filters.startDate && new Date(run.created_at || '') < filters.startDate) return false;
+      if (filters.endDate && new Date(run.created_at || '') > filters.endDate) return false;
+      if (filters.strategy && run.strategy_type !== filters.strategy) return false;
+      if (filters.symbol && run.symbol !== filters.symbol) return false;
+      if (filters.timeframe && run.timeframe !== filters.timeframe) return false;
+      
+      return true;
+    });
+  }, [allRuns, filters]);
+
+  const filteredStatistics = useMemo(() => {
+    if (!statistics) return [];
+    
+    return statistics.filter(stat => {
+      if (filters.strategy && stat.strategy_type !== filters.strategy) return false;
+      if (filters.symbol && stat.symbol !== filters.symbol) return false;
+      if (filters.timeframe && stat.timeframe !== filters.timeframe) return false;
+      
+      return true;
+    });
+  }, [statistics, filters]);
 
   if (statsLoading || overviewLoading || runsLoading) {
     return <LoadingSkeleton />;
@@ -42,10 +89,10 @@ export const ExecutiveDashboard = () => {
   }
 
   // Prepare data for charts
-  const completedRuns = runs.filter(run => run.status === 'completed');
+  const completedRuns = runs;
   
-  const strategyComparison = statistics
-    ?.reduce((acc: any[], stat) => {
+  const strategyComparison = filteredStatistics
+    .reduce((acc: any[], stat) => {
       const existing = acc.find(s => s.strategy === stat.strategy_type);
       if (existing) {
         existing.runs += stat.total_runs || 0;
@@ -65,15 +112,15 @@ export const ExecutiveDashboard = () => {
       strategy: s.strategy,
       runs: s.runs,
       avgReturn: Math.round((s.avgReturn / s.count) * 100) / 100,
-    })) || [];
+    }));
 
-  const symbolPerformance = statistics
-    ?.slice(0, 10)
+  const symbolPerformance = filteredStatistics
+    .slice(0, 10)
     .map(stat => ({
       symbol: stat.symbol,
       return: Math.round((stat.avg_return || 0) * 100) / 100,
       winRate: Math.round((stat.avg_win_rate || 0) * 100) / 100,
-    })) || [];
+    }));
 
   const timelineData = completedRuns
     .slice(-20)
@@ -92,6 +139,9 @@ export const ExecutiveDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Filters */}
+      <ExecutiveDashboardFilters filters={filters} onFiltersChange={setFilters} />
+
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card>
@@ -316,7 +366,7 @@ export const ExecutiveDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {statistics?.slice(0, 20).map((stat, index) => (
+                {filteredStatistics.slice(0, 20).map((stat, index) => (
                   <tr key={index} className="border-b border-border hover:bg-muted/30">
                     <td className="p-2">
                       <Badge variant="outline">{stat.strategy_type}</Badge>

@@ -30,14 +30,41 @@ export const useBacktestStatistics = () => {
   });
 };
 
-export const useBacktestOverview = () => {
+export interface BacktestFilters {
+  startDate?: Date;
+  endDate?: Date;
+  strategy?: string;
+  symbol?: string;
+  timeframe?: string;
+}
+
+export const useBacktestOverview = (filters?: BacktestFilters) => {
   return useQuery({
-    queryKey: ['backtest-overview'],
+    queryKey: ['backtest-overview', filters],
     queryFn: async () => {
-      const { data: runs, error } = await supabase
+      let query = supabase
         .from('backtesting_runs')
         .select('*')
         .eq('status', 'completed');
+
+      // Apply filters
+      if (filters?.startDate) {
+        query = query.gte('created_at', filters.startDate.toISOString());
+      }
+      if (filters?.endDate) {
+        query = query.lte('created_at', filters.endDate.toISOString());
+      }
+      if (filters?.strategy) {
+        query = query.eq('strategy_type', filters.strategy);
+      }
+      if (filters?.symbol) {
+        query = query.eq('symbol', filters.symbol);
+      }
+      if (filters?.timeframe) {
+        query = query.eq('timeframe', filters.timeframe);
+      }
+
+      const { data: runs, error } = await query;
 
       if (error) throw error;
 
